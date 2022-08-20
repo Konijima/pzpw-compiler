@@ -12,6 +12,9 @@
     "clean": "node ./node_modules/del-cli/cli.js ./bin ./lib",
     "pre-publish": "npm run build"
   },
+  "publishConfig": {
+    "tag": "v1-latest"
+  },
   "author": "Konijima",
   "license": "MIT",
   "funding": {
