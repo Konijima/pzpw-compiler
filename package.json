@@ -10,7 +10,7 @@
     "build": "npm run clean && tsc",
     "watch": "npm run clean && tsc --watch",
     "clean": "node ./node_modules/del-cli/cli.js ./bin ./lib",
-    "publish": "npm update && npm run build && npm version minor && npm publish"
+    "pre-publish": "npm run build"
   },
   "author": "Konijima",
   "license": "MIT",
