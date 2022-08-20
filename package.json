@@ -4,7 +4,7 @@
   "description": "Node command-line tool to compile PZPW projects.",
   "main": "./lib/compiler.js",
   "bin": {
-    "pzpw": "./bin/index.js"
+    "pzpw-compiler": "./bin/index.js"
   },
   "scripts": {
     "build": "npm run clean && tsc",
