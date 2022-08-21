@@ -2,7 +2,17 @@ import { join } from "path";
 import { readFile } from "fs/promises";
 
 /**
- * Async function to read and parse pzpw-config.json
+ * Read pzpw-compiler package.json
+ * @returns 
+ */
+export async function getPackageJson() {
+    const filePath = join("package.json");
+    const content = await readFile(filePath, 'utf-8');
+    return JSON.parse(content);
+}
+
+/**
+ * Read and parse pzpw-config.json
  * @param basePath base path to search for pzpw-config.json
  * @returns object
  */
