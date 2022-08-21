@@ -20,7 +20,7 @@ To install and use PZPW Compiler you need NodeJS and NPM.
 
 # Installation
 
-Install globally using:
+Install globally using npm:
 ```yml
 npm install -g pzpw-compiler
 ```
@@ -31,27 +31,27 @@ npm install -g pzpw-compiler
 
 Compile all mods.
 ```yml
-> pzpw-compiler mods
+pzpw-compiler mods
 ```
 
 Compile mods into workshop.
 ```yml
-> pzpw-compiler workshop
+pzpw-compiler workshop
 ```
 
 Get or set game cachedir.
 ```yml
-> pzpw-compiler cachedir <get|set> <path>
+pzpw-compiler cachedir <get|set> <path>
 ```
 
 Update PZPW Compiler.
 ```yml
-> pzpw-compiler update
+pzpw-compiler update
 ```
 
 Get help about commands.
 ```yml
-> pzpw-compiler help <command>
+pzpw-compiler help <command>
 ```
 
 <br>
