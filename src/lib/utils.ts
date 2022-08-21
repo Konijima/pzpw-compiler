@@ -1,5 +1,5 @@
 import { join } from "path";
-import { readFile } from "fs/promises";
+import { readdir, readFile } from "fs/promises";
 
 /**
  * Read pzpw-compiler package.json
@@ -35,10 +35,26 @@ export async function getIntro() {
 }
 
 /**
- * Async function to read the HELP.txt file
+ * Get help text
  * @returns 
  */
 export async function getHelp() {
-    const filePath = join("HELP.txt");
-    return await readFile(filePath, 'utf-8');
+    let result = ["AVAILABLE COMMANDS:\n"];
+    const helpDir = join("help");
+    const files = await readdir(helpDir);
+    for (const file of files) {
+        const command = file.replace(".txt", "");
+        const line = `${command} - ${await getCommandHelp(file.replace(".txt", ""), false)}`;
+        result.push(line.trim());
+    }
+    return result.join("\n");
+}
+
+/**
+ * Get command help text
+ * @returns 
+ */
+export async function getCommandHelp(commandName: string, full: boolean = false) {
+    const content = await readFile(join("help", commandName + '.txt'), 'utf-8');
+    return (full) ? content.replace("::FULL::", "").trim() : content.slice(0, content.indexOf("::FULL::")).trim();
 }

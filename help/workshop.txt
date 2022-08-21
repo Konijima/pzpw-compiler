@@ -1,0 +1,7 @@
+Compile mods into workshop.
+::FULL::
+Command:
+    workshop
+
+Usage:
+    pzpw-compiler workshop

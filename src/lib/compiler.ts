@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { execSync } from 'child_process';
 import { Settings } from "./settings.js";
-import { getHelp, getIntro, getPZPWConfig } from "./utils.js";
+import { getCommandHelp, getHelp, getIntro, getPZPWConfig } from "./utils.js";
 
 export class Compiler {
     
@@ -13,6 +13,9 @@ export class Compiler {
         this.args = args;
     }
 
+    /**
+     * Start the compiler process
+     */
     public async run() {
         await getIntro().then(text => console.log(chalk.greenBright(text)));
 
@@ -22,49 +25,86 @@ export class Compiler {
         await this.exec();
     }
 
+    /**
+     * Verify that the process is running inside a PZPW project.
+     */
     private requirePZPWProject() {
         if (!this.pzpwConfig)
             throw chalk.red('This command must be executed from the root of your PZPW project.');
     }
 
+    /**
+     *  
+     * @returns 
+     */
+    private getCommand() {
+        const commandName = this.args[''].slice(0, 1)[0];
+        const commandParams = this.args[''].slice(1);
+        return {
+            name: commandName,
+            params: commandParams,
+        };
+    }
+
+    /**
+     * Execute commands
+     */
     private async exec() {
-        if (this.args.mods)
-            await this.compileMods();
+        let command = this.getCommand();
 
-        else if (this.args.workshop)
-            await this.compileWorkshop();
+        if (command.name === "help" && command.params.length > 0)
+            await getCommandHelp(command.params[0] as string, true).then(text => console.log(chalk.grey(text)))
+                .catch(_ => console.log(chalk.grey(`Command "${command.params[0] as string}" not found!`)));
 
-        else if (this.args.cachedir)
-            await this.cachedirCommand();
+        else if (command.name === "mods")
+            await this.compileMods(command.params);
 
-        else if (this.args.update)
-            await this.updateCommand();
+        else if (command.name === "workshop")
+            await this.compileWorkshop(command.params);
+
+        else if (command.name === "cachedir" )
+            await this.cachedirCommand(command.params);
+
+        else if (command.name === "update")
+            await this.updateCommand(command.params);
         
         else await getHelp().then(text => console.log(chalk.grey(text)));
     }
 
-    private async compileMods() {
+    /**
+     * Compile mods command
+     */
+    private async compileMods(params: (string | number)[]) {
         await this.requirePZPWProject();
 
         console.log(chalk.bgCyan('Compiling Mods'));
     }
 
-    private async compileWorkshop() {
+    /**
+     * Compile workshop command
+     */
+    private async compileWorkshop(params: (string | number)[]) {
         await this.requirePZPWProject();
 
         console.log(chalk.bgCyan('Compiling Workshop'));
     }
 
-    private async cachedirCommand() {
+    /**
+     * Get or set game cachedir path command
+     */
+    private async cachedirCommand(params: (string | number)[]) {
         console.log(chalk.bgCyan('Cachedir'));
     }
 
-    private async updateCommand() {
+    /**
+     * Update pzpw-compiler command
+     */
+    private async updateCommand(params: (string | number)[]) {
         console.log(chalk.bgCyan('Updating...'));
         
         return new Promise((resolve: Function) => {
             const buffer = execSync('npm update');
-            console.log(chalk.gray(buffer.toString()));
+            console.log(chalk.gray(buffer.toString().trim()));
             resolve();
         });
     }

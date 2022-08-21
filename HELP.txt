@@ -1,8 +1,0 @@
-AVAILABLE COMMANDS
-
-Usage: pzpw-compiler -command param1 param2
-
--mods                            Compile all mods.
--workshop                        Compile mods into workshop.
--update                          Update the compiler.
--cachedir <get|set> <path>       Set game cachedir.

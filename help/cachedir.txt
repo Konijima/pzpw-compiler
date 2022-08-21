@@ -1,0 +1,9 @@
+Set game cachedir.
+::FULL::
+Command:
+    cachedir <get|set> <path>
+
+Usages:
+    pzpw-compiler cachedir get
+    pzpw-compiler cachedir set "D:/Zomboid"
+    

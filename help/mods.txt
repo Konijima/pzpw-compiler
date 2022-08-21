@@ -1,0 +1,7 @@
+Compile all mods.
+::FULL::
+Command:
+    mods
+
+Usage:
+    pzpw-compiler mods
