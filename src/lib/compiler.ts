@@ -4,7 +4,8 @@ import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { Settings } from "./settings.js";
-import { transpile } from './transpiler.js';
+import { ModsCompiler } from './mods-compiler.js';
+import { WorkshopCompiler } from './workshop-compiler.js';
 import { getCommandHelp, getHelp, getIntro, getPZPWConfig } from "./utils.js";
 
 export class Compiler {
@@ -96,14 +97,14 @@ export class Compiler {
             else console.log(chalk.red(`Mod ${modId} is not found in this project!`));
         }
 
-        if (validModIds.length === 0) return console.log(chalk.red(`No mod found to compile!`));
+        if (validModIds.length === 0)
+            throw chalk.red('No mod found to compile!\nCheck that mod IDs are set correctly in your project\'s pzpw-config.json');
 
         console.log(chalk.cyan(`Compiling ${validModIds.length} mod(s) [ ${validModIds.join(", ")} ]...`));
 
-        // Transpile mods
-        const transpileResult = await transpile(validModIds);
+        await ModsCompiler(this.pzpwConfig, validModIds);
 
-        
+        return validModIds;
     }
 
     /**
@@ -113,9 +114,11 @@ export class Compiler {
         await this.requirePZPWProject();
 
         let modIds = (params.length > 0) ? params : Object.keys(this.pzpwConfig.workshop.mods);
-        await this.compileMods(modIds);
+        const validModIds = await this.compileMods(modIds).catch(error => { throw error; });
 
-        console.log(chalk.cyan('Compiling Workshop...'));
+        console.log(chalk.cyan('Compiling Workshop mods ...'));
+
+        await WorkshopCompiler(this.pzpwConfig, validModIds);
     }
 
     /**
