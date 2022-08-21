@@ -1,5 +1,5 @@
-import { join, resolve } from "path";
-import { readdir, readFile } from "fs/promises";
+import { dirname, extname, join, resolve } from "path";
+import { copyFile, mkdir, readdir, readFile, stat, writeFile } from "fs/promises";
 
 /**
  * Root directory of the running process
@@ -62,4 +62,42 @@ export async function getHelp() {
 export async function getCommandHelp(commandName: string, full: boolean = false) {
     const content = await readFile(join(APP_PATH, "help", commandName + '.txt'), 'utf-8');
     return (full) ? content.replace("::FULL::", "").trim() : content.slice(0, content.indexOf("::FULL::")).trim();
+}
+
+/**
+ * Copy files recursively to a destination
+ * @param sourceDirectory the source directory
+ * @param destinationDirectory the destination directory
+ * @param ignoreExtentions array of extention to ignore
+ */
+export async function copyDirRecursiveTo(sourceDirectory: string, destinationDirectory: string, ignoreExtentions: string[] = []) {
+    const files = await readdir(sourceDirectory);
+    for (const file of files) {
+        const path = join(sourceDirectory, file);
+        const lstat = await stat(path);
+        if (lstat.isDirectory()) {
+            await copyDirRecursiveTo(path, path.replace(sourceDirectory, destinationDirectory), ignoreExtentions);
+        } else {
+            if (file.startsWith('.') || ignoreExtentions.includes(extname(file))) continue;
+            const dest = path.replace(sourceDirectory, destinationDirectory);
+            await mkdir(dirname(dest), { recursive: true });
+            await copyFile(path, dest);
+        }
+    }
+}
+
+/**
+ * Copy a file and ensure the directories are created recursively, optionally transform it's content
+ * @param sourceDirectory 
+ * @param destinationDirectory 
+ * @param transform 
+ */
+export async function copyFileRecursiveTo(sourceDirectory: string, destinationDirectory: string, transform?: (content: string) => string) {
+    await mkdir(dirname(destinationDirectory), { recursive: true });
+    if (transform) {
+        let content = await readFile(sourceDirectory, 'utf-8');
+        content = transform(content);
+        await writeFile(destinationDirectory, content);
+    }
+    else await copyFile(sourceDirectory, destinationDirectory);
 }
