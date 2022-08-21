@@ -93,7 +93,30 @@ export class Compiler {
      * Get or set game cachedir path command
      */
     private async cachedirCommand(params: (string | number)[]) {
-        console.log(chalk.bgCyan('Cachedir'));
+        if (!params[0] || params[0] === "get") {
+            console.log('cachedir: ', chalk.cyanBright(this.settings.get('cachedir')));
+        }
+
+        else if (params[0] === "set") {
+            const cachedir = params[1].toString();
+            if (existsSync(cachedir)) {
+                this.settings.set('cachedir', cachedir);
+                this.settings.save();
+                console.log(chalk.green(`cachedir is now "${cachedir}`));
+            }
+            else console.log(chalk.red(`Path "${cachedir}" doesn't exist!`));
+        }
+
+        else if (params[0] === "unset") {
+            const cachedir = join(homedir(), 'Zomboid');
+            this.settings.set('cachedir', cachedir);
+            this.settings.save();
+            console.log(chalk.green(`cachedir is now "${cachedir}`));
+        }
+
+        else {
+            console.log(chalk.red(`First param must be 'get' or 'set' got '${params[0]}'!`));
+        }
     }
 
     /**
