@@ -4,7 +4,7 @@
     "module": "esnext",
     "moduleResolution": "node",
     "lib": [
-      "ES6",
+      "esnext",
       "DOM"
     ],
     "outDir": "dist",
