@@ -32,7 +32,7 @@ export class Settings {
     public static async Load() {
         let settings: ISettings = {};
         try {
-            const loadPath = join(__dirname, "../", "global-settings.json");
+            const loadPath = join("global-settings.json");
             const content = await readFile(loadPath, 'utf-8');
             settings = JSON.parse(content) as ISettings;
         }
@@ -62,7 +62,7 @@ export class Settings {
      * Save current settings
      */
     public async save() {
-        const savePath = join(__dirname, "../", "global-settings.json");
+        const savePath = join("global-settings.json");
         await writeFile(savePath, JSON.stringify(this.settings), 'utf-8');
     }
 }
