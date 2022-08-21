@@ -1,9 +1,47 @@
 import ts from "typescript";
 import { resolve } from "path";
-import { CompilerOptions, EmitResult, parseConfigFileWithSystem, transpileFiles } from "typescript-to-lua";
+import { CompilerOptions, EmitFile, EmitResult, parseConfigFileWithSystem, ProcessedFile, Transpiler } from "typescript-to-lua";
+import chalk from "chalk";
 
 export type TranspileResult = {[fileName: string]: string}
 
+/**
+ * Extend Transpiler
+ * - Fix the files output names
+ */
+class ModTranspiler extends Transpiler {
+    protected override getEmitPlan(program: ts.Program, diagnostics: ts.Diagnostic[], files: ProcessedFile[]): any {
+        const result = super.getEmitPlan(program, diagnostics, files);
+        for (const emitPlan of result.emitPlan) {
+            // @ts-ignore
+            emitPlan.outputPath = emitPlan.fileName
+
+            // Fix path
+            emitPlan.outputPath = emitPlan.outputPath.replaceAll('\\', '/');
+        }
+        return result;
+    }
+}
+
+/**
+ * Custom transpileFiles to run our extended ModTranspiler
+ */
+function transpileFiles(
+    rootNames: string[],
+    options: CompilerOptions = {},
+    writeFile?: ts.WriteFileCallback
+): EmitResult {
+    const program = ts.createProgram(rootNames, options);
+    const preEmitDiagnostics = ts.getPreEmitDiagnostics(program);
+    const { diagnostics: transpileDiagnostics, emitSkipped } = new ModTranspiler().emit({ program, writeFile });
+    const diagnostics = ts.sortAndDeduplicateDiagnostics([...preEmitDiagnostics, ...transpileDiagnostics]);
+
+    return { diagnostics: [...diagnostics], emitSkipped };
+}
+
+/**
+ * Filter file to transpile from the selected mod IDs
+ */
 function transpileProject(
     modIds: string[],
     configFileName: string,
@@ -32,15 +70,13 @@ export async function transpile(modIds: string[], compilerOptions?: CompilerOpti
         const transpileResult: TranspileResult = {};
 
         const result = transpileProject(modIds, 'tsconfig.json', compilerOptions || {}, (fileName: string, lua: string, _, onError: Function) => {
-            // Remove project direction, change all \\, remove file extention, remove first /
-            const cleanFileName = fileName.replace(resolve("./"), "").replaceAll('\\', '/').replace('.lua', '').slice(1);
-
-            transpileResult[cleanFileName] = lua;
+            transpileResult[fileName] = lua;
         });
 
         // Print transpile errors
         result.diagnostics.forEach(diagnostic => {
-            console.error('Transpile Error:', diagnostic);
+            if (diagnostic.code !== 18003) // ignore no files to transpile error
+                console.error(chalk.red('Transpile Error:'), diagnostic);
         });
 
         complete(transpileResult);
