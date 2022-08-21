@@ -1,4 +1,4 @@
-Update the compiler.
+Update PZPW Compiler.
 ::FULL::
 Command:
     update

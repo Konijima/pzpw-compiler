@@ -1,4 +1,4 @@
-Set game cachedir.
+Get or set game cachedir.
 ::FULL::
 Command:
     cachedir <get|set> <path>
