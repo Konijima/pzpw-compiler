@@ -5,3 +5,4 @@ Command:
 
 Usage:
     pzpw-compiler workshop
+    pzpw-compiler workshop mod1 mod2

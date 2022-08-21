@@ -29,19 +29,21 @@ npm install -g pzpw-compiler
 
 # Commands
 
-Compile all mods.
+Compile all mods.  
+> *Optionally specify the mod ids to compile.*
 ```yml
-pzpw-compiler mods
+pzpw-compiler mods <mod1> <mod2>
 ```
 
-Compile mods into workshop.
+Compile mods into workshop.  
+> *Optionally specify the mod ids to compile.*
 ```yml
-pzpw-compiler workshop
+pzpw-compiler workshop <mod1> <mod2>
 ```
 
-Get or set game cachedir.
+Get, set or unset game cachedir.
 ```yml
-pzpw-compiler cachedir <get|set> <path>
+pzpw-compiler cachedir <get|set|unset> <path>
 ```
 
 Update PZPW Compiler.
