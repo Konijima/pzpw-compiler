@@ -106,7 +106,10 @@ export class Compiler {
     private async compileWorkshop(params: (string | number)[]) {
         await this.requirePZPWProject();
 
-        console.log(chalk.bgCyan('Compiling Workshop'));
+        let modIds = (params.length > 0) ? params : Object.keys(this.pzpwConfig.workshop.mods);
+        await this.compileMods(modIds);
+
+        console.log(chalk.cyan('Compiling Workshop...'));
     }
 
     /**
