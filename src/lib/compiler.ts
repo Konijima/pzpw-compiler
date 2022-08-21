@@ -4,8 +4,8 @@ import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { Settings } from "./settings.js";
-import { ModsCompiler } from './mods-compiler.js';
-import { WorkshopCompiler } from './workshop-compiler.js';
+import { ModsCompiler } from './compilers/mods-compiler.js';
+import { WorkshopCompiler } from './compilers/workshop-compiler.js';
 import { getCommandHelp, getHelp, getIntro, getPZPWConfig } from "./utils.js";
 
 export class Compiler {
