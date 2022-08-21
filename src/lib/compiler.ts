@@ -138,7 +138,7 @@ export class Compiler {
         }
 
         else {
-            console.log(chalk.red(`First param must be 'get' or 'set' got '${params[0]}'!`));
+            console.log(chalk.red(`First param must be 'get | set | unset' but got '${params[0]}'!`));
         }
     }
 
