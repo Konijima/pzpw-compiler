@@ -17,7 +17,7 @@
     "tag": "v1-latest"
   },
   "author": "Konijima",
-  "license": "MIT",
+  "license": "Apache License Version 2.0",
   "funding": {
     "type": "paypal",
     "url": "https://paypal.me/Konijima"
@@ -32,8 +32,10 @@
   },
   "keywords": [
     "pzpw",
+    "compiler",
     "pipewrench",
-    "projectzomboid"
+    "typescript",
+    "project-zomboid"
   ],
   "devDependencies": {
     "@types/node": "^18.7.5",
