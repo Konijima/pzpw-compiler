@@ -87,7 +87,17 @@ export class Compiler {
     private async compileMods(params: (string | number)[]) {
         await this.requirePZPWProject();
 
-        console.log(chalk.bgCyan('Compiling Mods'));
+        // Validate mods to compile
+        let validModIds: string[] = [];
+        let modIds = (params.length > 0) ? params : Object.keys(this.pzpwConfig.mods);
+        for (const modId of modIds as string[]) {
+            if (this.pzpwConfig.mods[modId]) validModIds.push(modId);
+            else console.log(chalk.red(`Mod ${modId} is not found in this project!`));
+        }
+
+        if (validModIds.length === 0) return console.log(chalk.red(`No mod found to compile!`));
+
+        console.log(chalk.cyan(`Compiling ${validModIds.length} mod(s) [ ${validModIds.join(", ")} ]...`));
     }
 
     /**
