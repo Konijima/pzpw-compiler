@@ -56,6 +56,11 @@ Get help about commands.
 pzpw-compiler help <command>
 ```
 
+Clean cachedir generated files.
+```yml
+pzpw-compiler clean <all|mods|workshop>
+```
+
 <br>
 
 > Apache License Version 2.0  

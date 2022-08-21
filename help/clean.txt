@@ -1,0 +1,9 @@
+Clean cachedir generated files.
+::FULL::
+Command:
+    clean <all|mods|workshop>
+
+Usage:
+    pzpw-compiler clean all
+    pzpw-compiler clean mods
+    pzpw-compiler clean workshop

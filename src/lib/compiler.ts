@@ -79,6 +79,9 @@ export class Compiler {
 
         else if (command.name === "update")
             await this.updateCommand(command.params);
+
+        else if (command.name === "clean")
+                await this.cleanCommand(command.params);
         
         else await getHelp().then(text => console.log(chalk.grey(text)));
     }
@@ -163,5 +166,12 @@ export class Compiler {
             console.log(chalk.gray(buffer.toString().trim()));
             resolve();
         });
+    }
+
+    /**
+     * Clean project and cachedir command
+     */
+    private async cleanCommand(param: (string | number)[]) {
+        
     }
 }
