@@ -1,5 +1,7 @@
+import { homedir } from "os";
 import { join } from "path";
 import { readFile, writeFile } from "fs/promises";
+import { APP_PATH } from "./utils.js";
 
 export type SettingValue = string | number | boolean;
 
@@ -9,20 +11,17 @@ export interface ISettings {
     /**
      * Store default global cachedir
      */
-    cachedir?: string
-
-    /**
-     * Store custom global cachedir by project modIDs
-     */
-    cachedirs?: {[modID: string]: string}
+    cachedir: string
 }
 
 export class Settings {
 
-    private settings: ISettings;
+    public readonly settings: ISettings;
 
     constructor(settings?: ISettings) {
-        this.settings = settings || {};
+        this.settings = settings || {
+            cachedir: join(homedir(), 'Zomboid'),
+        };
     }
 
     /**
@@ -30,9 +29,9 @@ export class Settings {
      * @returns 
      */
     public static async Load() {
-        let settings: ISettings = {};
+        let settings: ISettings;
         try {
-            const loadPath = join("global-settings.json");
+            const loadPath = join(APP_PATH, "global-settings.json");
             const content = await readFile(loadPath, 'utf-8');
             settings = JSON.parse(content) as ISettings;
         }
@@ -62,7 +61,7 @@ export class Settings {
      * Save current settings
      */
     public async save() {
-        const savePath = join("global-settings.json");
+        const savePath = join(APP_PATH, "global-settings.json");
         await writeFile(savePath, JSON.stringify(this.settings), 'utf-8');
     }
 }
