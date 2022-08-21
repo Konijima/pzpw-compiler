@@ -4,6 +4,7 @@ import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { Settings } from "./settings.js";
+import { transpile } from './transpiler.js';
 import { getCommandHelp, getHelp, getIntro, getPZPWConfig } from "./utils.js";
 
 export class Compiler {
@@ -98,6 +99,11 @@ export class Compiler {
         if (validModIds.length === 0) return console.log(chalk.red(`No mod found to compile!`));
 
         console.log(chalk.cyan(`Compiling ${validModIds.length} mod(s) [ ${validModIds.join(", ")} ]...`));
+
+        // Transpile mods
+        const transpileResult = await transpile(validModIds);
+
+        
     }
 
     /**
