@@ -1,6 +1,6 @@
 {
   "name": "pzpw-compiler",
-  "version": "1.0.0",
+  "version": "2.0.0-alpha",
   "description": "Node command-line tool to compile PZPW projects.",
   "main": "./dist/lib/compiler.js",
   "type": "module",
@@ -14,7 +14,7 @@
     "watch": "npm run clean && tsc --watch"
   },
   "publishConfig": {
-    "tag": "v1-latest"
+    "tag": "latest"
   },
   "author": "Konijima",
   "license": "Apache License Version 2.0",
