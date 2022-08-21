@@ -2,21 +2,22 @@
   "name": "pzpw-compiler",
   "version": "1.0.0",
   "description": "Node command-line tool to compile PZPW projects.",
-  "main": "./lib/compiler.js",
+  "main": "./dist/lib/compiler.js",
+  "type": "module",
   "bin": {
-    "pzpw": "./bin/index.js"
+    "pzpw-compiler": "./dist/index.js"
   },
+  "types": "./dts",
   "scripts": {
+    "clean": "del-cli --force ./bin ./lib ./dts",
     "build": "npm run clean && tsc",
-    "watch": "npm run clean && tsc --watch",
-    "clean": "node ./node_modules/del-cli/cli.js ./bin ./lib",
-    "pre-publish": "npm run build"
+    "watch": "npm run clean && tsc --watch"
   },
   "publishConfig": {
     "tag": "v1-latest"
   },
   "author": "Konijima",
-  "license": "MIT",
+  "license": "Apache License Version 2.0",
   "funding": {
     "type": "paypal",
     "url": "https://paypal.me/Konijima"
@@ -31,14 +32,19 @@
   },
   "keywords": [
     "pzpw",
+    "compiler",
     "pipewrench",
-    "projectzomboid"
+    "typescript",
+    "project-zomboid"
   ],
   "devDependencies": {
     "@types/node": "^18.7.5",
+    "typescript": "^4.6.2"
+  },
+  "dependencies": {
+    "chalk": "^5.0.1",
     "del-cli": "^4.0.1",
     "lua-types": "^2.11.0",
-    "typescript": "^4.6.2",
     "typescript-to-lua": "^1.4.2"
   }
 }

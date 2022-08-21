@@ -1,0 +1,7 @@
+Update PZPW Compiler.
+::FULL::
+Command:
+    update
+
+Usage:
+    pzpw-compiler update
