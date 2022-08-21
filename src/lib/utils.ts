@@ -23,12 +23,15 @@ export async function getPZPWConfig(basePath: string = "") {
 }
 
 /**
- * Async function to read the INTRO.txt file
+ * Read the INTRO.txt file
  * @returns 
  */
 export async function getIntro() {
+    const { author, version } = await getPackageJson();
     const filePath = join("INTRO.txt");
-    return await readFile(filePath, 'utf-8');
+    return (await readFile(filePath, 'utf-8'))
+        .replaceAll('{author}', author)
+        .replaceAll('{version}', version);
 }
 
 /**
