@@ -2,8 +2,8 @@ ___  ___  ___  _ _ _    ____ ____ _  _ ___  _ _    ____ ____
 |__]   /  |__] | | |    |    |  | |\/| |__] | |    |___ |__/ 
 |     /__ |    |_|_|    |___ |__| |  | |    | |___ |___ |  \ 
 
-       Author - Konijima
-      Version - 1.0.0
+       Author - {author}
+      Version - {version}
    NPM Module - https://npmjs.com/package/pzpw-compiler
   Source Code - https://github.com/Konijima/pzpw-compiler
 Donation Link - https://paypal.me/Konijima
