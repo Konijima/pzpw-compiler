@@ -123,10 +123,11 @@ export class Compiler {
      * Update pzpw-compiler command
      */
     private async updateCommand(params: (string | number)[]) {
-        console.log(chalk.bgCyan('Updating...'));
+        console.log(chalk.cyan('Updating PZPW Compiler...'));
         
         return new Promise((resolve: Function) => {
-            const buffer = execSync('npm update');
+            const module = (params[0]) ? params[0] : 'pzpw-compiler';
+            const buffer = execSync(`npm install -g ${module}`);
             console.log(chalk.gray(buffer.toString().trim()));
             resolve();
         });
