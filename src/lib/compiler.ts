@@ -1,5 +1,8 @@
 import chalk from 'chalk';
 import { execSync } from 'child_process';
+import { existsSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 import { Settings } from "./settings.js";
 import { getCommandHelp, getHelp, getIntro, getPZPWConfig } from "./utils.js";
 
@@ -17,8 +20,6 @@ export class Compiler {
      * Start the compiler process
      */
     public async run() {
-        await getIntro().then(text => console.log(chalk.greenBright(text)));
-
         this.settings = await Settings.Load();
         this.pzpwConfig = await getPZPWConfig().catch(() => {});
 
@@ -51,6 +52,15 @@ export class Compiler {
      */
     private async exec() {
         let command = this.getCommand();
+
+        const shortIntro = (!command.name || command.name === 'help');
+        await getIntro().then(text => console.log(chalk.greenBright((!shortIntro) ? text.split('\n').slice(0, 4).join('\n') : text)));
+
+        // Debug Flag
+        if (this.args.debug) {
+            console.log(chalk.magenta("Command:"), command);
+            console.log(chalk.magenta("Settings:"), this.settings.settings, '\n');
+        }
 
         if (command.name === "help" && command.params.length > 0)
             await getCommandHelp(command.params[0] as string, true).then(text => console.log(chalk.grey(text)))
