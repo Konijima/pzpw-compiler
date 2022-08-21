@@ -1,12 +1,17 @@
-import { join } from "path";
+import { join, resolve } from "path";
 import { readdir, readFile } from "fs/promises";
+
+/**
+ * Root directory of the running process
+ */
+export const APP_PATH = resolve(process.argv[1], "../../");
 
 /**
  * Read pzpw-compiler package.json
  * @returns 
  */
 export async function getPackageJson() {
-    const filePath = join("package.json");
+    const filePath = join(APP_PATH, "package.json");
     const content = await readFile(filePath, 'utf-8');
     return JSON.parse(content);
 }
@@ -16,8 +21,8 @@ export async function getPackageJson() {
  * @param basePath base path to search for pzpw-config.json
  * @returns object
  */
-export async function getPZPWConfig(basePath: string = "") {
-    const filePath = join(basePath, "pzpw-config.json");
+export async function getPZPWConfig() {
+    const filePath = join("pzpw-config.json");
     const content = await readFile(filePath, 'utf-8');
     return JSON.parse(content);
 }
@@ -28,7 +33,7 @@ export async function getPZPWConfig(basePath: string = "") {
  */
 export async function getIntro() {
     const { author, version } = await getPackageJson();
-    const filePath = join("INTRO.txt");
+    const filePath = join(APP_PATH, "INTRO.txt");
     return (await readFile(filePath, 'utf-8'))
         .replaceAll('{author}', author)
         .replaceAll('{version}', version);
@@ -40,7 +45,7 @@ export async function getIntro() {
  */
 export async function getHelp() {
     let result = ["AVAILABLE COMMANDS:\n"];
-    const helpDir = join("help");
+    const helpDir = join(APP_PATH, "help");
     const files = await readdir(helpDir);
     for (const file of files) {
         const command = file.replace(".txt", "");
@@ -55,6 +60,6 @@ export async function getHelp() {
  * @returns 
  */
 export async function getCommandHelp(commandName: string, full: boolean = false) {
-    const content = await readFile(join("help", commandName + '.txt'), 'utf-8');
+    const content = await readFile(join(APP_PATH, "help", commandName + '.txt'), 'utf-8');
     return (full) ? content.replace("::FULL::", "").trim() : content.slice(0, content.indexOf("::FULL::")).trim();
 }
