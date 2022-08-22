@@ -38,8 +38,7 @@ export class Compiler {
     }
 
     /**
-     *  
-     * @returns 
+     * Get the command and parameters
      */
     private getCommand() {
         const commandName = this.args[''].slice(0, 1)[0];
@@ -50,6 +49,9 @@ export class Compiler {
         };
     }
 
+    /**
+     * Print full intro
+     */
     private async printIntro() {
         await getIntro().then(text => console.log(chalk.greenBright(text)));
     }
