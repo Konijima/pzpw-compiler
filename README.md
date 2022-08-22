@@ -61,6 +61,11 @@ Clean cachedir generated files.
 pzpw-compiler clean <all|mods|workshop>
 ```
 
+Print the current version.
+```yml
+pzpw-compiler version
+```
+
 <br>
 
 > Apache License Version 2.0  
