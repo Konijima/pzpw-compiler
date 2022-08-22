@@ -1,7 +1,7 @@
 import chalk from "chalk";
-import { basename, dirname, extname, join } from "path";
+import { basename, dirname, join } from "path";
 import { copyFile, mkdir, readdir, rm, writeFile } from "fs/promises";
-import { transpile, TranspileResult } from "../transpiler.js";
+import { transpile } from "../transpiler.js";
 import { APP_PATH, copyDirRecursiveTo, copyFileRecursiveTo } from "../utils.js";
 
 async function generateModInfo(pzpwConfig: any, modId: string) {

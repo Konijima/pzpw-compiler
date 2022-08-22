@@ -1,6 +1,6 @@
 {
   "name": "pzpw-compiler",
-  "version": "2.0.0-alpha",
+  "version": "2.1.0-alpha",
   "description": "Node command-line tool to compile PZPW projects.",
   "main": "./dist/lib/compiler.js",
   "type": "module",
