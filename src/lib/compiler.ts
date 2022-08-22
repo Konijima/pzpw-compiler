@@ -7,6 +7,7 @@ import { Settings } from "./settings.js";
 import { ModsCompiler } from './compilers/mods-compiler.js';
 import { WorkshopCompiler } from './compilers/workshop-compiler.js';
 import { getCommandHelp, getHelp, getIntro, getPZPWConfig } from "./utils.js";
+import { rm } from 'fs/promises';
 
 export class Compiler {
     
@@ -171,7 +172,45 @@ export class Compiler {
     /**
      * Clean project and cachedir command
      */
-    private async cleanCommand(param: (string | number)[]) {
+    private async cleanCommand(params: (string | number)[]) {
+        await this.requirePZPWProject();
         
+        // No param show some help
+        if (!params[0])
+            return console.log(chalk.gray(await getCommandHelp('clean', true)));
+
+        const cachedir = this.settings.get('cachedir');
+        let pathToDelete: string[] = [];
+        
+        // Clean Mods
+        if (params[0] === 'all' || params[0] === 'mods') {
+            for(const modId of Object.keys(this.pzpwConfig.mods)) {
+                const path = join(cachedir, 'mods', modId);
+                if (existsSync(path)) pathToDelete.push(path);
+            }
+        }
+        
+        // Clean Workshop
+        if (params[0] === 'all' || params[0] === 'workshop') {
+            const path = join(cachedir, 'workshop', this.pzpwConfig.workshop.title);
+            if (existsSync(path)) pathToDelete.push(path);
+        }
+
+        // Make sure we do not delete the whole directory
+        pathToDelete = pathToDelete.filter(p => p != join(cachedir, 'mods') && p != join(cachedir, 'workshop'));
+
+        // Print debug
+        if (this.args.debug)
+            console.log(cachedir, pathToDelete)
+
+        // Deletes
+        if (pathToDelete.length > 0) {
+            for(const path of pathToDelete) {
+                console.log(chalk.yellowBright(`- Deleting '${path}'...`));
+                if (!this.args.dry) // don't delete if dry
+                    await rm(path, { force: true, recursive: true });
+            }
+        }
+        else console.log(chalk.gray('There is nothing to delete!'));
     }
 }
