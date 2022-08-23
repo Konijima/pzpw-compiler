@@ -12,7 +12,7 @@ export const APP_PATH = resolve(process.argv[1], "../../");
  */
 export async function getPackageJson() {
     const filePath = join(APP_PATH, "package.json");
-    const content = await readFile(filePath, 'utf-8');
+    const content = await readFile(filePath, "utf-8");
     return JSON.parse(content);
 }
 
@@ -23,7 +23,7 @@ export async function getPackageJson() {
  */
 export async function getPZPWConfig() {
     const filePath = join("pzpw-config.json");
-    const content = await readFile(filePath, 'utf-8');
+    const content = await readFile(filePath, "utf-8");
     return JSON.parse(content);
 }
 
@@ -34,9 +34,9 @@ export async function getPZPWConfig() {
 export async function getIntro() {
     const { author, version } = await getPackageJson();
     const filePath = join(APP_PATH, "INTRO.txt");
-    return (await readFile(filePath, 'utf-8'))
-        .replaceAll('{author}', author)
-        .replaceAll('{version}', version);
+    return (await readFile(filePath, "utf-8"))
+        .replaceAll("{author}", author)
+        .replaceAll("{version}", version);
 }
 
 /**
@@ -44,7 +44,7 @@ export async function getIntro() {
  * @returns 
  */
 export async function getHelp() {
-    let result = ["AVAILABLE COMMANDS:\n"];
+    const result = ["AVAILABLE COMMANDS:\n"];
     const helpDir = join(APP_PATH, "help");
     const files = await readdir(helpDir);
     for (const file of files) {
@@ -59,8 +59,8 @@ export async function getHelp() {
  * Get command help text
  * @returns 
  */
-export async function getCommandHelp(commandName: string, full: boolean = false) {
-    const content = await readFile(join(APP_PATH, "help", commandName + '.txt'), 'utf-8');
+export async function getCommandHelp(commandName: string, full = false) {
+    const content = await readFile(join(APP_PATH, "help", commandName + ".txt"), "utf-8");
     return (full) ? content.replace("::FULL::", "").trim() : content.slice(0, content.indexOf("::FULL::")).trim();
 }
 
@@ -78,7 +78,7 @@ export async function copyDirRecursiveTo(sourceDirectory: string, destinationDir
         if (lstat.isDirectory()) {
             await copyDirRecursiveTo(path, path.replace(sourceDirectory, destinationDirectory), ignoreExtentions);
         } else {
-            if (file.startsWith('.') || ignoreExtentions.includes(extname(file))) continue;
+            if (file.startsWith(".") || ignoreExtentions.includes(extname(file))) continue;
             const dest = path.replace(sourceDirectory, destinationDirectory);
             await mkdir(dirname(dest), { recursive: true });
             await copyFile(path, dest);
@@ -95,7 +95,7 @@ export async function copyDirRecursiveTo(sourceDirectory: string, destinationDir
 export async function copyFileRecursiveTo(sourceDirectory: string, destinationDirectory: string, transform?: (content: string) => string) {
     await mkdir(dirname(destinationDirectory), { recursive: true });
     if (transform) {
-        let content = await readFile(sourceDirectory, 'utf-8');
+        let content = await readFile(sourceDirectory, "utf-8");
         content = transform(content);
         await writeFile(destinationDirectory, content);
     }
