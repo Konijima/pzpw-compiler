@@ -9,15 +9,15 @@ import { Compiler } from "./lib/compiler.js";
     try {
 
         // Parse process args
-        let arg = '';
+        let arg = "";
         const args: {[key: string]: (string | number)[]} = {
-            '': []
+            "": []
         };
         for (const value of process.argv.slice(2)) {
-            if (value.startsWith('-')) {
+            if (value.startsWith("-")) {
                 if (parseFloat(value)) {
                     args[arg].push(parseFloat(value));
-                    arg = '';
+                    arg = "";
                 }
                 else {
                     arg = value.slice(1); 
@@ -27,7 +27,7 @@ import { Compiler } from "./lib/compiler.js";
             }
             else {
                 args[arg].push(value);
-                arg = '';
+                arg = "";
             }
         }
 
@@ -39,7 +39,7 @@ import { Compiler } from "./lib/compiler.js";
     }
     finally {
         const totalSeconds = (Date.now() - startTime) / 1000;
-        console.log(`\nPZPW Compiler terminated! (${totalSeconds}s)`)
+        console.log(`\nPZPW Compiler terminated! (${totalSeconds}s)`);
     }
 
 })();

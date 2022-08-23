@@ -6,8 +6,8 @@ import { APP_PATH } from "./utils.js";
 export type SettingValue = string | number | boolean;
 
 export interface ISettings {
-    [key: string]: any
-    
+    [key: string]: unknown
+
     /**
      * Store default global cachedir
      */
@@ -20,7 +20,7 @@ export class Settings {
 
     constructor(settings?: ISettings) {
         this.settings = settings || {
-            cachedir: join(homedir(), 'Zomboid'),
+            cachedir: join(homedir(), "Zomboid"),
         };
     }
 
@@ -32,10 +32,10 @@ export class Settings {
         let settings: ISettings;
         try {
             const loadPath = join(APP_PATH, "global-settings.json");
-            const content = await readFile(loadPath, 'utf-8');
+            const content = await readFile(loadPath, "utf-8");
             settings = JSON.parse(content) as ISettings;
         }
-        catch(error) { }
+        catch(error) { /** ignore */ }
         return new Settings(settings);
     }
 
@@ -44,8 +44,8 @@ export class Settings {
      * @param key 
      * @returns 
      */
-    public get(key: string) {
-        return this.settings[key];
+    public get<T>(key: string) {
+        return this.settings[key] as T;
     }
     
     /**
@@ -53,7 +53,7 @@ export class Settings {
      * @param key 
      * @param value 
      */
-    public set(key: string, value: SettingValue) {
+    public set<T>(key: string, value: T) {
         this.settings[key] = value;
     }
 
@@ -62,6 +62,6 @@ export class Settings {
      */
     public async save() {
         const savePath = join(APP_PATH, "global-settings.json");
-        await writeFile(savePath, JSON.stringify(this.settings), 'utf-8');
+        await writeFile(savePath, JSON.stringify(this.settings), "utf-8");
     }
 }

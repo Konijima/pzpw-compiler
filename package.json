@@ -9,7 +9,8 @@
   },
   "types": "./dts",
   "scripts": {
-    "clean": "del-cli --force ./bin ./lib ./dts",
+    "clean": "del-cli --force ./dist ./dts",
+    "lint": "eslint ./src",
     "build": "npm run clean && tsc",
     "watch": "npm run clean && tsc --watch"
   },
@@ -39,6 +40,9 @@
   ],
   "devDependencies": {
     "@types/node": "^18.7.5",
+    "@typescript-eslint/eslint-plugin": "^5.34.0",
+    "@typescript-eslint/parser": "^5.34.0",
+    "eslint": "^8.22.0",
     "typescript": "^4.6.2"
   },
   "dependencies": {

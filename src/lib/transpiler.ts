@@ -1,7 +1,6 @@
-import ts from "typescript";
-import { resolve } from "path";
-import { CompilerOptions, EmitFile, EmitResult, parseConfigFileWithSystem, ProcessedFile, Transpiler } from "typescript-to-lua";
 import chalk from "chalk";
+import ts from "typescript";
+import { CompilerOptions, EmitResult, parseConfigFileWithSystem, ProcessedFile, Transpiler } from "typescript-to-lua";
 
 export type TranspileResult = {[fileName: string]: string}
 
@@ -10,14 +9,15 @@ export type TranspileResult = {[fileName: string]: string}
  * - Fix the files output names
  */
 class ModTranspiler extends Transpiler {
-    protected override getEmitPlan(program: ts.Program, diagnostics: ts.Diagnostic[], files: ProcessedFile[]): any {
+    protected override getEmitPlan(program: ts.Program, diagnostics: ts.Diagnostic[], files: ProcessedFile[]) {
         const result = super.getEmitPlan(program, diagnostics, files);
         for (const emitPlan of result.emitPlan) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            emitPlan.outputPath = emitPlan.fileName
+            emitPlan.outputPath = emitPlan.fileName;
 
             // Fix path
-            emitPlan.outputPath = emitPlan.outputPath.replaceAll('\\', '/');
+            emitPlan.outputPath = emitPlan.outputPath.replaceAll("\\", "/");
         }
         return result;
     }
@@ -54,7 +54,7 @@ function transpileProject(
     }
 
     // Transpile only the files from selected modIds
-    parseResult.fileNames = parseResult.fileNames.filter(f => modIds.includes(f.split('/')[1]));
+    parseResult.fileNames = parseResult.fileNames.filter(f => modIds.includes(f.split("/")[1]));
 
     return transpileFiles(parseResult.fileNames, parseResult.options, writeFile);
 }
@@ -69,14 +69,14 @@ export async function transpile(modIds: string[], compilerOptions?: CompilerOpti
     return new Promise((complete: (result: TranspileResult) => void) => {
         const transpileResult: TranspileResult = {};
 
-        const result = transpileProject(modIds, 'tsconfig.json', compilerOptions || {}, (fileName: string, lua: string, _, onError: Function) => {
+        const result = transpileProject(modIds, "tsconfig.json", compilerOptions || {}, (fileName: string, lua: string) => {
             transpileResult[fileName] = lua;
         });
 
         // Print transpile errors
         result.diagnostics.forEach(diagnostic => {
             if (diagnostic.code !== 18003) // ignore no files to transpile error
-                console.error(chalk.red('Transpile Error:'), diagnostic);
+                console.error(chalk.red("Transpile Error:"), diagnostic);
         });
 
         complete(transpileResult);
