@@ -1,18 +1,19 @@
 import chalk from "chalk";
-import { execSync } from "child_process";
-import { existsSync } from "fs";
-import { homedir } from "os";
 import { join } from "path";
+import { homedir } from "os";
+import { existsSync } from "fs";
+import { rm } from "fs/promises";
+import { execSync } from "child_process";
+import { PZPWConfig } from "pzpw-config-schema";
 import { Settings } from "./settings.js";
 import { ModsCompiler } from "./compilers/mods-compiler.js";
 import { WorkshopCompiler } from "./compilers/workshop-compiler.js";
 import { getCommandHelp, getHelp, getIntro, getPZPWConfig } from "./utils.js";
-import { rm } from "fs/promises";
 
 export class Compiler {
     
     private settings: Settings;
-    private pzpwConfig?: any;
+    private pzpwConfig: PZPWConfig | undefined;
     readonly args: {[key: string]: (string | number)[]};
 
     constructor(args: {[key: string]: (string | number)[]}) {
@@ -24,7 +25,7 @@ export class Compiler {
      */
     public async run() {
         this.settings = await Settings.Load();
-        this.pzpwConfig = await getPZPWConfig().catch(() => { /** ignore */ });
+        await getPZPWConfig().then(pzpwConfig => this.pzpwConfig = pzpwConfig).catch(() => { /** ignore */ });
 
         await this.exec();
     }

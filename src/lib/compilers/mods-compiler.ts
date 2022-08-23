@@ -1,10 +1,11 @@
 import chalk from "chalk";
 import { basename, dirname, join } from "path";
+import { PZPWConfig } from "pzpw-config-schema";
 import { copyFile, mkdir, readdir, rm, writeFile } from "fs/promises";
 import { transpile } from "../transpiler.js";
 import { APP_PATH, copyDirRecursiveTo, copyFileRecursiveTo } from "../utils.js";
 
-async function generateModInfo(pzpwConfig: any, modId: string) {
+async function generateModInfo(pzpwConfig: PZPWConfig, modId: string) {
     console.log(chalk.yellowBright(`- Generating 'dist/${modId}/mod.info'...`));
     
     let content = "";
