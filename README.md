@@ -1,5 +1,6 @@
 # PZPW Compiler
 
+[![Lint](https://github.com/Konijima/pzpw-compiler/actions/workflows/Lint.yml/badge.svg)](https://github.com/Konijima/pzpw-compiler/actions/workflows/Lint.yml)
 [![Build](https://github.com/Konijima/pzpw-compiler/actions/workflows/Build.yml/badge.svg)](https://github.com/Konijima/pzpw-compiler/actions/workflows/Build.yml)
 [![npm version](https://badge.fury.io/js/pzpw-compiler.svg)](https://badge.fury.io/js/pzpw-compiler)
 
