@@ -38,8 +38,7 @@ export class Compiler {
     }
 
     /**
-     *  
-     * @returns 
+     * Get the command and parameters
      */
     private getCommand() {
         const commandName = this.args[''].slice(0, 1)[0];
@@ -51,13 +50,20 @@ export class Compiler {
     }
 
     /**
+     * Print full intro
+     */
+    private async printIntro() {
+        await getIntro().then(text => console.log(chalk.greenBright(text)));
+    }
+
+    /**
      * Execute commands
      */
     private async exec() {
         let command = this.getCommand();
 
-        const shortIntro = (!command.name || command.name === 'help');
-        await getIntro().then(text => console.log(chalk.greenBright((!shortIntro) ? text.split('\n').slice(0, 4).join('\n') : text)));
+        if (!command.name || command.name === 'help')
+            await this.printIntro();
 
         // Debug Flag
         if (this.args.debug) {
@@ -83,6 +89,9 @@ export class Compiler {
 
         else if (command.name === "clean")
                 await this.cleanCommand(command.params);
+
+        else if (command.name === "version")
+            await this.versionCommand(command.params);
         
         else await getHelp().then(text => console.log(chalk.grey(text)));
     }
@@ -117,12 +126,12 @@ export class Compiler {
     private async compileWorkshop(params: (string | number)[]) {
         await this.requirePZPWProject();
 
-        let modIds = (params.length > 0) ? params : Object.keys(this.pzpwConfig.workshop.mods);
-        const validModIds = await this.compileMods(modIds).catch(error => { throw error; });
+        const modIds = (params.length > 0) ? params : this.pzpwConfig.workshop.mods;
+        await this.compileMods(modIds).catch(error => { throw error; });
 
-        console.log(chalk.cyan('Compiling Workshop mods ...'));
+        console.log(chalk.cyan("Compiling workshop..."));
 
-        await WorkshopCompiler(this.pzpwConfig, validModIds);
+        await WorkshopCompiler(this.pzpwConfig, this.settings.get("cachedir"));
     }
 
     /**
@@ -212,5 +221,12 @@ export class Compiler {
             }
         }
         else console.log(chalk.gray('There is nothing to delete!'));
+    }
+
+    /**
+     * Print the current version command
+     */
+    private async versionCommand(params: (string | number)[]) {
+        await this.printIntro();
     }
 }
