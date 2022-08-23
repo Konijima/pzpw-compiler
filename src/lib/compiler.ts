@@ -126,12 +126,12 @@ export class Compiler {
     private async compileWorkshop(params: (string | number)[]) {
         await this.requirePZPWProject();
 
-        let modIds = (params.length > 0) ? params : Object.keys(this.pzpwConfig.workshop.mods);
-        const validModIds = await this.compileMods(modIds).catch(error => { throw error; });
+        const modIds = (params.length > 0) ? params : this.pzpwConfig.workshop.mods;
+        await this.compileMods(modIds).catch(error => { throw error; });
 
-        console.log(chalk.cyan('Compiling Workshop mods ...'));
+        console.log(chalk.cyan("Compiling workshop..."));
 
-        await WorkshopCompiler(this.pzpwConfig, validModIds);
+        await WorkshopCompiler(this.pzpwConfig, this.settings.get("cachedir"));
     }
 
     /**
