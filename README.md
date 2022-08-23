@@ -1,12 +1,13 @@
 # PZPW Compiler
 
+[![Lint](https://github.com/Konijima/pzpw-compiler/actions/workflows/Lint.yml/badge.svg)](https://github.com/Konijima/pzpw-compiler/actions/workflows/Lint.yml)
 [![Build](https://github.com/Konijima/pzpw-compiler/actions/workflows/Build.yml/badge.svg)](https://github.com/Konijima/pzpw-compiler/actions/workflows/Build.yml)
 [![npm version](https://badge.fury.io/js/pzpw-compiler.svg)](https://badge.fury.io/js/pzpw-compiler)
 
 <br>
 
-[NPM](https://www.npmjs.com/search?q=pzpw) | [PZPW](https://github.com/Konijima/pzpw) | [Template](https://github.com/Konijima/pzpw-template) | [Compiler](https://github.com/Konijima/pzpw-compiler) | [Donation](https://paypal.me/Konijima)
-|---|---|---|---|---|
+[NPM](https://www.npmjs.com/search?q=pzpw) | [PZPW](https://github.com/Konijima/pzpw) | [Template](https://github.com/Konijima/pzpw-template) | [Donation](https://paypal.me/Konijima)
+|---|---|---|---|
 
 <br>
 
@@ -59,6 +60,11 @@ pzpw-compiler help <command>
 Clean cachedir generated files.
 ```yml
 pzpw-compiler clean <all|mods|workshop>
+```
+
+Print the current version.
+```yml
+pzpw-compiler version
 ```
 
 <br>

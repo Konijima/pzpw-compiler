@@ -1,6 +1,6 @@
 {
   "name": "pzpw-compiler",
-  "version": "2.1.0-alpha",
+  "version": "2.2.0-alpha",
   "description": "Node command-line tool to compile PZPW projects.",
   "main": "./dist/lib/compiler.js",
   "type": "module",
@@ -9,7 +9,8 @@
   },
   "types": "./dts",
   "scripts": {
-    "clean": "del-cli --force ./bin ./lib ./dts",
+    "clean": "del-cli --force ./dist ./dts",
+    "lint": "eslint ./src",
     "build": "npm run clean && tsc",
     "watch": "npm run clean && tsc --watch"
   },
@@ -39,12 +40,16 @@
   ],
   "devDependencies": {
     "@types/node": "^18.7.5",
+    "@typescript-eslint/eslint-plugin": "^5.34.0",
+    "@typescript-eslint/parser": "^5.34.0",
+    "eslint": "^8.22.0",
     "typescript": "^4.6.2"
   },
   "dependencies": {
     "chalk": "^5.0.1",
     "del-cli": "^4.0.1",
     "lua-types": "^2.11.0",
+    "pzpw-config-schema": "^1.0.2",
     "typescript-to-lua": "^1.4.2"
   }
 }
