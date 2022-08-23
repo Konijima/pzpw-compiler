@@ -22,7 +22,7 @@ export async function getPackageJson() {
  * @param basePath base path to search for pzpw-config.json
  * @returns object
  */
-export async function getPZPWConfig(): Promise<PZPWConfig | undefined> {
+export async function getPZPWConfig(): Promise<PZPWConfig> {
     const filePath = join("pzpw-config.json");
     const content = await readFile(filePath, "utf-8");
     return JSON.parse(content) as PZPWConfig;

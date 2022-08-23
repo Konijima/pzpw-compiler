@@ -13,7 +13,7 @@ import { getCommandHelp, getHelp, getIntro, getPZPWConfig } from "./utils.js";
 export class Compiler {
     
     private settings: Settings;
-    private pzpwConfig?: PZPWConfig;
+    private pzpwConfig: PZPWConfig | undefined;
     readonly args: {[key: string]: (string | number)[]};
 
     constructor(args: {[key: string]: (string | number)[]}) {
@@ -25,7 +25,7 @@ export class Compiler {
      */
     public async run() {
         this.settings = await Settings.Load();
-        this.pzpwConfig = await getPZPWConfig().catch(() => { /** ignore */ }) || undefined;
+        await getPZPWConfig().then(pzpwConfig => this.pzpwConfig = pzpwConfig).catch(() => { /** ignore */ });
 
         await this.exec();
     }
