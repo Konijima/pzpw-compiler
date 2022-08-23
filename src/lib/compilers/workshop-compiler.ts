@@ -1,12 +1,13 @@
 import chalk from "chalk";
 import { basename, join } from "path";
+import { PZPWConfig } from "pzpw-config-schema";
 import { copyFile, mkdir, readFile, rm, writeFile } from "fs/promises";
 import { copyDirRecursiveTo } from "../utils.js";
 
 /**
  * Generate the workshop txt file
  */
-async function generateWorkshopTxt(pzpwConfig: any) {
+async function generateWorkshopTxt(pzpwConfig: PZPWConfig) {
     console.log(chalk.yellowBright("- Generating 'workshop/workshop.txt'..."));
     
     let content = "version=1\r\n";
