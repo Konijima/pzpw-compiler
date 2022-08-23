@@ -6,8 +6,8 @@
 
 <br>
 
-[NPM](https://www.npmjs.com/search?q=pzpw) | [PZPW](https://github.com/Konijima/pzpw) | [Template](https://github.com/Konijima/pzpw-template) | [Compiler](https://github.com/Konijima/pzpw-compiler) | [Donation](https://paypal.me/Konijima)
-|---|---|---|---|---|
+[NPM](https://www.npmjs.com/search?q=pzpw) | [PZPW](https://github.com/Konijima/pzpw) | [Template](https://github.com/Konijima/pzpw-template) | [Donation](https://paypal.me/Konijima)
+|---|---|---|---|
 
 <br>
 
