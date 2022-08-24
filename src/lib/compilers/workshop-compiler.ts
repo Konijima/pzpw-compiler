@@ -51,16 +51,16 @@ export async function WorkshopCompiler(pzpwConfig: PZPWConfig, cachedir: string)
     // Copy preview into workshop directory
     const previewImagePath = join("assets/workshop/preview.png");
     console.log(chalk.yellowBright(`- Copying preview image '${basename(previewImagePath)}' to 'workshop/${basename(previewImagePath)}'...`));
-    copyFile(previewImagePath, join("workshop", basename(previewImagePath)));
+    await copyFile(previewImagePath, join("workshop", basename(previewImagePath)));
 
     // Copy mods into workshop mods directory
     console.log(chalk.yellowBright("- Copying generated mods to 'workshop/Contents/mods/'..."));
-    copyDirRecursiveTo("dist", "workshop/Contents/mods/");
+    await copyDirRecursiveTo("dist", "workshop/Contents/mods/");
 
     // Copy generated workshop directory to cachedir
     if (pzpwConfig.workshop.title.length === 0) throw chalk.red("You must set a workshop title into 'pzpw-config.json'!");
     const inPath = join("workshop");
     const outPath = join(cachedir, "Workshop", pzpwConfig.workshop.title);
     console.log(chalk.yellowBright(`- Copying '${inPath}' to '${outPath}'...`));
-    copyDirRecursiveTo(inPath, outPath);
+    await copyDirRecursiveTo(inPath, outPath);
 }

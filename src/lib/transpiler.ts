@@ -76,7 +76,7 @@ export async function transpile(modIds: string[], compilerOptions?: CompilerOpti
         // Print transpile errors
         result.diagnostics.forEach(diagnostic => {
             if (diagnostic.code !== 18003) // ignore no files to transpile error
-                console.error(chalk.red("Transpile Error:"), diagnostic);
+                console.error(chalk.bgRed("TRANSPILE ERROR:"), chalk.red(`\n${diagnostic.messageText}`), `\nFile: ${diagnostic.file.fileName}`);
         });
 
         complete(transpileResult);
