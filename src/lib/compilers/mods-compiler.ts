@@ -57,6 +57,51 @@ function fixRequire(modId: string, lua: string) {
     return lua;
 }
 
+const REIMPORT_TEMPLATE = `-- PIPEWRENCH --
+if _G.Events.OnPipeWrenchBoot == nil then
+  _G.triggerEvent('OnPipeWrenchBoot', false)
+end
+_G.Events.OnPipeWrenchBoot.Add(function(____flag____)
+  if ____flag____ ~= true then return end
+  -- {IMPORTS}
+end)
+----------------`;
+
+/**
+ * Apply reimport script to output file
+ */
+function applyReimportScript(lua: string): string {
+    const assignments: string[] = [];
+    const lines = lua.split('\n');
+
+    // Look for any PipeWrench assignments.
+    for (const line of lines) {
+        if (
+        line.indexOf('local ') === 0 &&
+        line.indexOf('____pipewrench.') !== -1
+        ) {
+        assignments.push(line.replace('local ', ''));
+        }
+    }
+    // Only generate a reimport codeblock if there's anything to import.
+    if (!assignments.length) return lua;
+
+    // Take out the returns statement so we can insert before it.
+    lines.pop();
+    const returnLine: string = lines.pop() as string;
+    lines.push('');
+
+    // Build the reimport event.
+    let compiledImports = '';
+    for (const assignment of assignments) compiledImports += `${assignment}\n`;
+    const reimports = REIMPORT_TEMPLATE.replace(
+        '-- {IMPORTS}',
+        compiledImports.substring(0, compiledImports.length - 1)
+    );
+
+    return `${lines.join('\n')}\n${reimports}\n\n${returnLine}\n`;
+}
+
 /**
  * Compile mods into dist directory
  * @param pzpwConfig 
@@ -121,7 +166,8 @@ export async function ModsCompiler(pzpwConfig: any, modIds: string[], cachedir: 
             filePath = join(filePath, split.join("/"));     // add modId and the rest
 
             const luaOutPath = join("dist", modId, "media", "lua", filePath.replace(".ts", ".lua"));
-            const content = fixRequire(modId, transpileResult[fileName]);
+            let content = fixRequire(modId, transpileResult[fileName]);
+            content = applyReimportScript(content);
 
             console.log(chalk.yellowBright(`- Copying lua '${fileName}' to '${luaOutPath}'`));
             await mkdir(dirname(luaOutPath), { recursive: true });
