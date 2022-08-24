@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { resolve } from "path";
 import ts from "typescript";
 import { CompilerOptions, EmitResult, parseConfigFileWithSystem, ProcessedFile, Transpiler } from "typescript-to-lua";
 
@@ -17,7 +18,7 @@ class ModTranspiler extends Transpiler {
             emitPlan.outputPath = emitPlan.fileName;
 
             // Fix path
-            emitPlan.outputPath = emitPlan.outputPath.replaceAll("\\", "/");
+            emitPlan.outputPath = emitPlan.outputPath.replace(resolve() + "\\", '').replaceAll("\\", "/");
         }
         return result;
     }
