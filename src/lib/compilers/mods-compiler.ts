@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { existsSync } from "fs";
 import { basename, dirname, join } from "path";
 import { PZPWConfig } from "pzpw-config-schema";
 import { copyFile, mkdir, readdir, rm, writeFile } from "fs/promises";
@@ -49,13 +50,57 @@ function fixRequire(modId: string, lua: string) {
         str = str.replace(str.slice(requireLen, str.indexOf("shared/") + "shared/".length), ""); // Strip the scope
         
         str = (str == "require(\"lualib_bundle\")") ? `require("${modId}/lualib_bundle")` : str;
-        str = (str == "require(\"PipeWrench\")") ? `require("${modId}/PipeWrench")` : str;
-        str = (str == "require(\"PipeWrench-Events\")") ? `require("${modId}/PipeWrench-Events")` : str;
-        str = (str == "require(\"PipeWrench-Utils\")") ? `require("${modId}/PipeWrench-Utils")` : str;
+        str = (str == "require(\"@asledgehammer/pipewrench\")") ? `require("${modId}/PipeWrench")` : str;
+        str = (str == "require(\"@asledgehammer/pipewrench-events\")") ? `require("${modId}/PipeWrench-Events")` : str;
         return str;
     });
 
     return lua;
+}
+
+const REIMPORT_TEMPLATE = `-- PIPEWRENCH --
+if _G.Events.OnPipeWrenchBoot == nil then
+  _G.triggerEvent('OnPipeWrenchBoot', false)
+end
+_G.Events.OnPipeWrenchBoot.Add(function(____flag____)
+  if ____flag____ ~= true then return end
+  -- {IMPORTS}
+end)
+----------------`;
+
+/**
+ * Apply reimport script to output file
+ */
+function applyReimportScript(lua: string): string {
+    const assignments: string[] = [];
+    const lines = lua.split('\n');
+
+    // Look for any PipeWrench assignments.
+    for (const line of lines) {
+        if (
+        line.indexOf('local ') === 0 &&
+        line.indexOf('____pipewrench.') !== -1
+        ) {
+        assignments.push(line.replace('local ', ''));
+        }
+    }
+    // Only generate a reimport codeblock if there's anything to import.
+    if (!assignments.length) return lua;
+
+    // Take out the returns statement so we can insert before it.
+    lines.pop();
+    const returnLine: string = lines.pop() as string;
+    lines.push('');
+
+    // Build the reimport event.
+    let compiledImports = '';
+    for (const assignment of assignments) compiledImports += `${assignment}\n`;
+    const reimports = REIMPORT_TEMPLATE.replace(
+        '-- {IMPORTS}',
+        compiledImports.substring(0, compiledImports.length - 1)
+    );
+
+    return `${lines.join('\n')}\n${reimports}\n\n${returnLine}\n`;
 }
 
 /**
@@ -63,7 +108,7 @@ function fixRequire(modId: string, lua: string) {
  * @param pzpwConfig 
  * @param modIds 
  */
-export async function ModsCompiler(pzpwConfig: any, modIds: string[], cachedir: string) {
+export async function ModsCompiler(pzpwConfig: PZPWConfig, modIds: string[], cachedir: string) {
     // Transpile typescript
     console.log(chalk.yellowBright(`- Transpiling ${modIds.length} mod(s)...`));
     const transpileResult = await transpile(modIds);
@@ -110,6 +155,16 @@ export async function ModsCompiler(pzpwConfig: any, modIds: string[], cachedir: 
         copyDirRecursiveTo(mediaSourceDir, mediaDestDir, [".ts", ".gitkeep"]);
     }
 
+    // Copy license file
+    const licensePath = join("assets", "LICENSE.txt");
+    if (existsSync(licensePath)) {
+        for (const modId of modIds) {
+            const mediaDestDir = join("dist", modId, "LICENSE.txt");
+            console.log(chalk.yellowBright(`- Copying LICENSE.txt to 'dist/${modId}'...`));
+            await copyFile(licensePath, mediaDestDir);
+        }
+    }
+
     // Add transpiled lua
     for (const fileName of Object.keys(transpileResult)) {
         if (fileName.startsWith("src/")) {
@@ -122,7 +177,8 @@ export async function ModsCompiler(pzpwConfig: any, modIds: string[], cachedir: 
             filePath = join(filePath, split.join("/"));     // add modId and the rest
 
             const luaOutPath = join("dist", modId, "media", "lua", filePath.replace(".ts", ".lua"));
-            const content = fixRequire(modId, transpileResult[fileName]);
+            let content = fixRequire(modId, transpileResult[fileName]);
+            content = applyReimportScript(content);
 
             console.log(chalk.yellowBright(`- Copying lua '${fileName}' to '${luaOutPath}'`));
             await mkdir(dirname(luaOutPath), { recursive: true });
@@ -140,7 +196,7 @@ export async function ModsCompiler(pzpwConfig: any, modIds: string[], cachedir: 
 
     // Copy PipeWrench
     for (const modId of modIds) {
-        const mediaSource = "node_modules/PipeWrench/PipeWrench.lua";
+        const mediaSource = "node_modules/@asledgehammer/pipewrench/PipeWrench.lua";
         const mediaDest = join("dist", modId, "media", "lua", "shared", modId, "PipeWrench.lua");
         console.log(chalk.yellowBright(`- Copying 'PipeWrench' to 'dist/${modId}/media/lua/shared/${modId}/'...`));
         copyFileRecursiveTo(mediaSource, mediaDest, (content: string) => fixRequire(modId, content));
@@ -148,17 +204,9 @@ export async function ModsCompiler(pzpwConfig: any, modIds: string[], cachedir: 
 
     // Copy PipeWrench-Events
     for (const modId of modIds) {
-        const mediaSource = "node_modules/PipeWrench-Events/PipeWrench-Events.lua";
+        const mediaSource = "node_modules/@asledgehammer/pipewrench-events/PipeWrench-Events.lua";
         const mediaDest = join("dist", modId, "media", "lua", "shared", modId, "PipeWrench-Events.lua");
         console.log(chalk.yellowBright(`- Copying 'PipeWrench-Events' to 'dist/${modId}/media/lua/shared/${modId}/'...`));
-        copyFileRecursiveTo(mediaSource, mediaDest, (content: string) => fixRequire(modId, content));
-    }
-
-    // Copy PipeWrench-Utils
-    for (const modId of modIds) {
-        const mediaSource = "node_modules/PipeWrench-Utils/PipeWrench-Utils.lua";
-        const mediaDest = join("dist", modId, "media", "lua", "shared", modId, "PipeWrench-Utils.lua");
-        console.log(chalk.yellowBright(`- Copying 'PipeWrench-Utils' to 'dist/${modId}/media/lua/shared/${modId}/'...`));
         copyFileRecursiveTo(mediaSource, mediaDest, (content: string) => fixRequire(modId, content));
     }
 
