@@ -38,7 +38,7 @@ async function generateWorkshopTxt(pzpwConfig: PZPWConfig) {
         .catch(() => console.error(chalk.red("Error while writing 'workshop/workshop.txt'")));
 }
 
-export async function WorkshopCompiler(pzpwConfig: any, cachedir: string) {
+export async function WorkshopCompiler(pzpwConfig: PZPWConfig, cachedir: string) {
     // Prepare workshop directory
     console.log(chalk.yellowBright("- Deleting directory 'workshop'..."));
     await rm("workshop", { force: true, recursive: true });

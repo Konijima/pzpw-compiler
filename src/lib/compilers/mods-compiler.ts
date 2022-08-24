@@ -107,7 +107,7 @@ function applyReimportScript(lua: string): string {
  * @param pzpwConfig 
  * @param modIds 
  */
-export async function ModsCompiler(pzpwConfig: any, modIds: string[], cachedir: string) {
+export async function ModsCompiler(pzpwConfig: PZPWConfig, modIds: string[], cachedir: string) {
     // Transpile typescript
     console.log(chalk.yellowBright(`- Transpiling ${modIds.length} mod(s)...`));
     const transpileResult = await transpile(modIds);
