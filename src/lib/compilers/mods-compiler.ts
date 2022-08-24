@@ -10,6 +10,9 @@ async function generateModInfo(pzpwConfig: PZPWConfig, modId: string) {
     console.log(chalk.yellowBright(`- Generating 'dist/${modId}/mod.info'...`));
     
     let content = "";
+
+    content += `id=${modId}\r\n`;
+
     Object.keys(pzpwConfig.mods[modId]).forEach((key: string) => {
         if (pzpwConfig.mods[modId][key] != null) {
             const obj = pzpwConfig.mods[modId][key];
