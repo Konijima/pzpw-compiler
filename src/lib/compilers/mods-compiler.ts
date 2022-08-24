@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { existsSync } from "fs";
 import { basename, dirname, join } from "path";
 import { PZPWConfig } from "pzpw-config-schema";
 import { copyFile, mkdir, readdir, rm, writeFile } from "fs/promises";
@@ -152,6 +153,16 @@ export async function ModsCompiler(pzpwConfig: PZPWConfig, modIds: string[], cac
         const mediaDestDir = join("dist", modId, "media", "lua");
         console.log(chalk.yellowBright(`- Copying source files to 'dist/${modId}/media/lua/'...`));
         copyDirRecursiveTo(mediaSourceDir, mediaDestDir, [".ts", ".gitkeep"]);
+    }
+
+    // Copy license file
+    const licensePath = join("assets", "LICENSE.txt");
+    if (existsSync(licensePath)) {
+        for (const modId of modIds) {
+            const mediaDestDir = join("dist", modId, "LICENSE.txt");
+            console.log(chalk.yellowBright(`- Copying LICENSE.txt to 'dist/${modId}'...`));
+            await copyFile(licensePath, mediaDestDir);
+        }
     }
 
     // Add transpiled lua
