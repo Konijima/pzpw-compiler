@@ -49,9 +49,8 @@ function fixRequire(modId: string, lua: string) {
         str = str.replace(str.slice(requireLen, str.indexOf("shared/") + "shared/".length), ""); // Strip the scope
         
         str = (str == "require(\"lualib_bundle\")") ? `require("${modId}/lualib_bundle")` : str;
-        str = (str == "require(\"PipeWrench\")") ? `require("${modId}/PipeWrench")` : str;
-        str = (str == "require(\"PipeWrench-Events\")") ? `require("${modId}/PipeWrench-Events")` : str;
-        str = (str == "require(\"PipeWrench-Utils\")") ? `require("${modId}/PipeWrench-Utils")` : str;
+        str = (str == "require(\"@asledgehammer/pipewrench\")") ? `require("${modId}/PipeWrench")` : str;
+        str = (str == "require(\"@asledgehammer/pipewrench-events\")") ? `require("${modId}/PipeWrench-Events")` : str;
         return str;
     });
 
@@ -140,7 +139,7 @@ export async function ModsCompiler(pzpwConfig: any, modIds: string[], cachedir: 
 
     // Copy PipeWrench
     for (const modId of modIds) {
-        const mediaSource = "node_modules/PipeWrench/PipeWrench.lua";
+        const mediaSource = "node_modules/@asledgehammer/pipewrench/PipeWrench.lua";
         const mediaDest = join("dist", modId, "media", "lua", "shared", modId, "PipeWrench.lua");
         console.log(chalk.yellowBright(`- Copying 'PipeWrench' to 'dist/${modId}/media/lua/shared/${modId}/'...`));
         copyFileRecursiveTo(mediaSource, mediaDest, (content: string) => fixRequire(modId, content));
@@ -148,17 +147,9 @@ export async function ModsCompiler(pzpwConfig: any, modIds: string[], cachedir: 
 
     // Copy PipeWrench-Events
     for (const modId of modIds) {
-        const mediaSource = "node_modules/PipeWrench-Events/PipeWrench-Events.lua";
+        const mediaSource = "node_modules/@asledgehammer/pipewrench-events/PipeWrench-Events.lua";
         const mediaDest = join("dist", modId, "media", "lua", "shared", modId, "PipeWrench-Events.lua");
         console.log(chalk.yellowBright(`- Copying 'PipeWrench-Events' to 'dist/${modId}/media/lua/shared/${modId}/'...`));
-        copyFileRecursiveTo(mediaSource, mediaDest, (content: string) => fixRequire(modId, content));
-    }
-
-    // Copy PipeWrench-Utils
-    for (const modId of modIds) {
-        const mediaSource = "node_modules/PipeWrench-Utils/PipeWrench-Utils.lua";
-        const mediaDest = join("dist", modId, "media", "lua", "shared", modId, "PipeWrench-Utils.lua");
-        console.log(chalk.yellowBright(`- Copying 'PipeWrench-Utils' to 'dist/${modId}/media/lua/shared/${modId}/'...`));
         copyFileRecursiveTo(mediaSource, mediaDest, (content: string) => fixRequire(modId, content));
     }
 
