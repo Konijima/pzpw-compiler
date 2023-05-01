@@ -1,5 +1,6 @@
 const PZPW_ASSETS_DIR = "assets";
-const PMODULES_DIR = "media/lua/share";
+const LUA_SHARED_MODULES_DIR = "media/lua/shared";
+const LUA_MODULE_DIR = "lua_modules";
 const REIMPORT_TEMPLATE = `-- PIPEWRENCH --
 if _G.Events.OnPipeWrenchBoot == nil then
   _G.triggerEvent('OnPipeWrenchBoot', false)
@@ -12,7 +13,7 @@ end)
 
 enum PZPW_ERRORS {
   TRANSPILE_ERROR = "TRANSPILE ERROR",
-  CONFIG_ERROR = "CONFIG ERROR",
+  COMPILER_ERROR = "COMPILER_ERROR",
 }
 
-export { PZPW_ASSETS_DIR, REIMPORT_TEMPLATE, PMODULES_DIR, PZPW_ERRORS };
+export { PZPW_ASSETS_DIR, REIMPORT_TEMPLATE, LUA_SHARED_MODULES_DIR, PZPW_ERRORS, LUA_MODULE_DIR };

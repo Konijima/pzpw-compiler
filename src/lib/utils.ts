@@ -1,22 +1,13 @@
 import { PZPWConfig } from "pzpw-config-schema";
 import { dirname, extname, join, resolve } from "path";
 import { fileURLToPath } from "url";
-import {
-  copyFile,
-  mkdir,
-  readdir,
-  readFile,
-  stat,
-  writeFile,
-} from "fs/promises";
+import { copyFile, mkdir, readdir, readFile, stat, writeFile } from "fs/promises";
+import ts from "typescript";
 
 /**
  * Root directory of the running process
  */
-export const APP_PATH = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../"
-);
+export const APP_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "../../");
 
 /**
  * Read pzpw-compiler package.json
@@ -46,9 +37,7 @@ export async function getPZPWConfig(): Promise<PZPWConfig> {
 export async function getIntro() {
   const { author, version } = await getPackageJson();
   const filePath = join(APP_PATH, "INTRO.txt");
-  return (await readFile(filePath, "utf-8"))
-    .replaceAll("{author}", author)
-    .replaceAll("{version}", version);
+  return (await readFile(filePath, "utf-8")).replaceAll("{author}", author).replaceAll("{version}", version);
 }
 
 /**
@@ -61,10 +50,7 @@ export async function getHelp() {
   const files = await readdir(helpDir);
   for (const file of files) {
     const command = file.replace(".txt", "");
-    const line = `${command} - ${await getCommandHelp(
-      file.replace(".txt", ""),
-      false
-    )}`;
+    const line = `${command} - ${await getCommandHelp(file.replace(".txt", ""), false)}`;
     result.push(line.trim());
   }
   return result.join("\n");
@@ -75,13 +61,8 @@ export async function getHelp() {
  * @returns
  */
 export async function getCommandHelp(commandName: string, full = false) {
-  const content = await readFile(
-    join(APP_PATH, "help", commandName + ".txt"),
-    "utf-8"
-  );
-  return full
-    ? content.replace("::FULL::", "").trim()
-    : content.slice(0, content.indexOf("::FULL::")).trim();
+  const content = await readFile(join(APP_PATH, "help", commandName + ".txt"), "utf-8");
+  return full ? content.replace("::FULL::", "").trim() : content.slice(0, content.indexOf("::FULL::")).trim();
 }
 
 /**
@@ -93,21 +74,16 @@ export async function getCommandHelp(commandName: string, full = false) {
 export async function copyDirRecursiveTo(
   sourceDirectory: string,
   destinationDirectory: string,
-  ignoreExtentions: string[] = []
+  ignoreExtentions: string[] = [],
 ) {
   const files = await readdir(sourceDirectory);
   for (const file of files) {
     const path = join(sourceDirectory, file);
     const lstat = await stat(path);
     if (lstat.isDirectory()) {
-      await copyDirRecursiveTo(
-        path,
-        path.replace(sourceDirectory, destinationDirectory),
-        ignoreExtentions
-      );
+      await copyDirRecursiveTo(path, path.replace(sourceDirectory, destinationDirectory), ignoreExtentions);
     } else {
-      if (file.startsWith(".") || ignoreExtentions.includes(extname(file)))
-        continue;
+      if (file.startsWith(".") || ignoreExtentions.includes(extname(file))) continue;
       const dest = path.replace(sourceDirectory, destinationDirectory);
       await mkdir(dirname(dest), { recursive: true });
       await copyFile(path, dest);
@@ -124,7 +100,7 @@ export async function copyDirRecursiveTo(
 export async function copyFileRecursiveTo(
   sourceDirectory: string,
   destinationDirectory: string,
-  transform?: (content: string) => string
+  transform?: (content: string) => string,
 ) {
   await mkdir(dirname(destinationDirectory), { recursive: true });
   if (transform) {
@@ -140,15 +116,24 @@ export async function copyFileRecursiveTo(
  * @param {(v: T, i: number, ar: T[]) => boolean} predicate
  * @returns {T}
  */
-export function partitionBy<T>(
-  arr: T[],
-  predicate: (v: T, i: number, ar: T[]) => boolean
-) {
+export function partitionBy<T>(arr: T[], predicate: (v: T, i: number, ar: T[]) => boolean) {
   return arr.reduce(
     (acc, item, index, array) => {
       acc[+!predicate(item, index, array)].push(item);
       return acc;
     },
-    [[], []] as [T[], T[]]
+    [[], []] as [T[], T[]],
   );
+}
+
+/**
+ * Get tscondig entity
+ * @param {string} searchPath
+ * @param {string} configName
+ * @returns {ts.ParsedCommandLine}
+ */
+export function getTsConfig(searchPath = "./", configName = "tsconfig.json") {
+  const configFileName = ts.findConfigFile(searchPath, ts.sys.fileExists, configName);
+  const configFile = ts.readConfigFile(configFileName, ts.sys.readFile);
+  return ts.parseJsonConfigFileContent(configFile.config, ts.sys, "./");
 }
