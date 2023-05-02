@@ -19,6 +19,9 @@
     "tag": "latest"
   },
   "author": "Konijima",
+  "contributors": [
+    "MeowForMeow"
+  ],
   "license": "Apache License Version 2.0",
   "funding": {
     "type": "paypal",
