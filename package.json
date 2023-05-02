@@ -1,6 +1,6 @@
 {
   "name": "pzpw-compiler",
-  "version": "2.3.4-alpha",
+  "version": "2.4.4-alpha",
   "description": "Node command-line tool to compile PZPW projects.",
   "main": "./dist/lib/compiler.js",
   "type": "module",
@@ -19,6 +19,9 @@
     "tag": "latest"
   },
   "author": "Konijima",
+  "contributors": [
+    "MeowForMeow"
+  ],
   "license": "Apache License Version 2.0",
   "funding": {
     "type": "paypal",
@@ -44,13 +47,13 @@
     "@typescript-eslint/eslint-plugin": "^5.34.0",
     "@typescript-eslint/parser": "^5.34.0",
     "eslint": "^8.22.0",
-    "typescript": "^4.6.2"
+    "typescript": "^5.0.4"
   },
   "dependencies": {
     "chalk": "^5.0.1",
     "del-cli": "^4.0.1",
-    "lua-types": "^2.11.0",
+    "lua-types": "^2.13.1",
     "pzpw-config-schema": "^1.0.2",
-    "typescript-to-lua": "^1.4.2"
+    "typescript-to-lua": "~1.14.0"
   }
 }

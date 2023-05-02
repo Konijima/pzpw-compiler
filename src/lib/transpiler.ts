@@ -1,85 +1,111 @@
-import chalk from "chalk";
-import { resolve } from "path";
-import ts from "typescript";
-import { CompilerOptions, EmitResult, parseConfigFileWithSystem, ProcessedFile, Transpiler } from "typescript-to-lua";
+import { isAbsolute, relative, resolve } from "path";
+import ts, { ParsedCommandLine } from "typescript";
+import { CompilerOptions, EmitResult, parseConfigFileWithSystem, Transpiler } from "typescript-to-lua";
+import { logger } from "./logger.js";
+import { PZPW_ERRORS } from "./constants.js";
+import { getOutDir } from "./compilers/utils.js";
 
-export type TranspileResult = {[fileName: string]: string}
+export type TranspileResult = {
+  emitResult: EmitResult;
+  options: CompilerOptions;
+  rootDir: string;
+};
 
-/**
- * Extend Transpiler
- * - Fix the files output names
- */
-class ModTranspiler extends Transpiler {
-    protected override getEmitPlan(program: ts.Program, diagnostics: ts.Diagnostic[], files: ProcessedFile[]) {
-        const result = super.getEmitPlan(program, diagnostics, files);
-        for (const emitPlan of result.emitPlan) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            emitPlan.outputPath = emitPlan.fileName;
+export interface TranspileModResult extends Omit<TranspileResult, "emitResult"> {
+  files: { [fileName: string]: string };
+}
 
-            // Fix path
-            emitPlan.outputPath = emitPlan.outputPath.replace(resolve() + "\\", '').replaceAll("\\", "/");
-        }
-        return result;
-    }
+function isDiagnosticMessageChain(
+  messageText: string | ts.DiagnosticMessageChain,
+): messageText is ts.DiagnosticMessageChain {
+  return typeof messageText === "object" && "messageText" in messageText;
 }
 
 /**
- * Custom transpileFiles to run our extended ModTranspiler
+ * Get only target mod files
+ * @param {string} modId
+ * @param {ts.ParsedCommandLine} config
+ * @returns {string[]}
  */
-function transpileFiles(
-    rootNames: string[],
-    options: CompilerOptions = {},
-    writeFile?: ts.WriteFileCallback
-): EmitResult {
-    const program = ts.createProgram(rootNames, options);
-    const preEmitDiagnostics = ts.getPreEmitDiagnostics(program);
-    const { diagnostics: transpileDiagnostics, emitSkipped } = new ModTranspiler().emit({ program, writeFile });
-    const diagnostics = ts.sortAndDeduplicateDiagnostics([...preEmitDiagnostics, ...transpileDiagnostics]);
+function getModRootNames(modId: string, config: ParsedCommandLine): string[] {
+  const sourceDir = resolve(config.options.rootDir || "src");
+  return config.fileNames
+    .filter(filePath => relative(sourceDir, filePath).indexOf(modId) === 0)
+    .map(filePath => (isAbsolute(filePath) ? filePath : resolve(filePath)));
+}
 
-    return { diagnostics: [...diagnostics], emitSkipped };
+function getModRootDir(modId: string, options: CompilerOptions) {
+  return options.rootDir ? resolve(options.rootDir, modId) : resolve("src", modId);
+}
+
+function transpile(
+  modId: string,
+  configFileName: string,
+  optionsToExtend?: CompilerOptions,
+  writeFile?: ts.WriteFileCallback,
+): TranspileResult {
+  const config = parseConfigFileWithSystem(configFileName, optionsToExtend);
+
+  if (config.errors.length > 0) {
+    return {
+      emitResult: { diagnostics: config.errors, emitSkipped: true },
+      options: config.options,
+      rootDir: config.options.rootDir,
+    };
+  }
+
+  const rootNames = getModRootNames(modId, config);
+  config.options.rootDir = getModRootDir(modId, config.options);
+  const program = ts.createProgram(rootNames, config.options);
+  const preEmitDiagnostics = ts.getPreEmitDiagnostics(program);
+  const { diagnostics: transpileDiagnostics, emitSkipped } = new Transpiler().emit({ program, writeFile });
+  const diagnostics = ts.sortAndDeduplicateDiagnostics([...preEmitDiagnostics, ...transpileDiagnostics]);
+
+  return {
+    emitResult: { diagnostics: [...diagnostics], emitSkipped },
+    options: program.getCompilerOptions(),
+    rootDir: config.options.rootDir,
+  };
 }
 
 /**
- * Filter file to transpile from the selected mod IDs
+ * Transpile mod and return file names with lua code content
+ * @param {string} modId
+ * @param {CompilerOptions} compilerOptions
+ * @returns {Promise<TranspileResult>}
  */
-function transpileProject(
-    modIds: string[],
-    configFileName: string,
-    optionsToExtend?: CompilerOptions,
-    writeFile?: ts.WriteFileCallback
-): EmitResult {
-    const parseResult = parseConfigFileWithSystem(configFileName, optionsToExtend);
-    if (parseResult.errors.length > 0) {
-        return { diagnostics: parseResult.errors, emitSkipped: true };
-    }
+export async function transpileMod(modId: string, compilerOptions?: CompilerOptions) {
+  return new Promise((complete: (result: TranspileModResult) => void) => {
+    const files: TranspileModResult["files"] = {};
+    const outDir = getOutDir();
 
-    // Transpile only the files from selected modIds
-    parseResult.fileNames = parseResult.fileNames.filter(f => modIds.includes(f.split("/")[1]));
+    const { emitResult, ...rest } = transpile(
+      modId,
+      "tsconfig.json",
+      compilerOptions || {},
+      (fileName: string, lua: string) => {
+        const key = isAbsolute(fileName) ? relative(outDir, fileName) : fileName;
+        files[key] = lua;
+      },
+    );
 
-    return transpileFiles(parseResult.fileNames, parseResult.options, writeFile);
-}
-
-/**
- * Transpile a project filtered by provided ModIDs
- * @param modIds list of mod ids to transpile
- * @param compilerOptions 
- * @returns 
- */
-export async function transpile(modIds: string[], compilerOptions?: CompilerOptions) {
-    return new Promise((complete: (result: TranspileResult) => void) => {
-        const transpileResult: TranspileResult = {};
-
-        const result = transpileProject(modIds, "tsconfig.json", compilerOptions || {}, (fileName: string, lua: string) => {
-            transpileResult[fileName] = lua;
-        });
-
-        // Print transpile errors
-        result.diagnostics.forEach(diagnostic => {
-            if (diagnostic.code !== 18003) // ignore no files to transpile error
-                console.error(chalk.bgRed("TRANSPILE ERROR:"), chalk.red(`\n${diagnostic.messageText}`), `\nFile: ${diagnostic.file.fileName}`);
-        });
-
-        complete(transpileResult);
+    // Print transpile errors
+    emitResult.diagnostics.forEach(diagnostic => {
+      if (diagnostic.code !== 18003) {
+        // ignore no files to transpile error
+        const messageText = isDiagnosticMessageChain(diagnostic.messageText)
+          ? diagnostic.messageText.messageText
+          : diagnostic.messageText;
+        logger.log(
+          logger.color.error(PZPW_ERRORS.TRANSPILE_ERROR, diagnostic.code),
+          logger.color.error(...[`${messageText}`, `\nFile: ${diagnostic.file?.fileName}\n`]),
+        );
+      }
     });
+
+    complete({
+      files,
+      ...rest,
+    });
+  });
 }
