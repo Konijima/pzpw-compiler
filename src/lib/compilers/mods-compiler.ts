@@ -1,223 +1,193 @@
-import chalk from "chalk";
-import { existsSync } from "fs";
-import { basename, dirname, join } from "path";
+import { basename, dirname, join, normalize } from "path";
 import { PZPWConfig } from "pzpw-config-schema";
 import { copyFile, mkdir, readdir, rm, writeFile } from "fs/promises";
-import { transpile } from "../transpiler.js";
-import { APP_PATH, copyDirRecursiveTo, copyFileRecursiveTo } from "../utils.js";
-
-async function generateModInfo(pzpwConfig: PZPWConfig, modId: string) {
-    console.log(chalk.yellowBright(`- Generating 'dist/${modId}/mod.info'...`));
-    
-    let content = "";
-
-    content += `id=${modId}\r\n`;
-
-    Object.keys(pzpwConfig.mods[modId]).forEach((key: string) => {
-        if (pzpwConfig.mods[modId][key] != null) {
-            const obj = pzpwConfig.mods[modId][key];
-            let value;
-            if (Array.isArray(obj)) {
-                if (obj.length > 0) value = obj.join(";");
-            }
-            else value = obj;
-
-            if (value) content += `${key}=${value}\r\n`;
-        }
-    });
-
-    if (!pzpwConfig.mods[modId].icon) content += "icon=icon.png\r\n";
-    if (!pzpwConfig.mods[modId].poster) content += "poster=poster.png\r\n";
-
-    await writeFile(join("dist", modId, "mod.info"), content)
-        .catch(() => console.error(chalk.red(`Error while writing 'dist/${modId}/mod.info'`)));
-}
+import { transpileMod } from "../transpiler.js";
+import { copyDirRecursiveTo, partitionBy } from "../utils.js";
+import { logger } from "../logger.js";
+import {
+  applyReimportScript,
+  fixRequire,
+  generateModInfo,
+  getLicensePath,
+  getOutDir,
+  isGlobal,
+  isLuaModule,
+  isProjectDirScope,
+  mergeFilesByModule,
+} from "./utils.js";
+import { LUA_SHARED_MODULES_DIR, PZPW_ASSETS_DIR, PZPW_ERRORS } from "../constants.js";
+import { existsSync } from "fs";
 
 /**
- * Fix the requires
+ * Copy mod images to dest dir
+ * @param {string} outDir
+ * @param {string} modId
+ * @returns {Promise<void>}
  */
-function fixRequire(modId: string, lua: string) {
-    if (lua.length === 0) return "";
-
-    // Zed regex
-    const requireRegex = /require\("(.*)"\)/g;
-    const sepRegex = /[.]/g;
-
-    lua = lua.replaceAll(requireRegex, (match) => {
-        let str = match.replaceAll(sepRegex, "/"); // Replace dots with slash
-        str = str.replaceAll("'", "\""); // Replace single quote to double quotes
-
-        const requireLen = "require(\"".length;
-        str = str.replace(str.slice(requireLen, str.indexOf("client/") + "client/".length), ""); // Strip the scope
-        str = str.replace(str.slice(requireLen, str.indexOf("server/") + "server/".length), ""); // Strip the scope
-        str = str.replace(str.slice(requireLen, str.indexOf("shared/") + "shared/".length), ""); // Strip the scope
-        
-        str = (str == "require(\"lualib_bundle\")") ? `require("${modId}/lualib_bundle")` : str;
-        str = (str == "require(\"@asledgehammer/pipewrench\")") ? `require("${modId}/PipeWrench")` : str;
-        str = (str == "require(\"@asledgehammer/pipewrench-events\")") ? `require("${modId}/PipeWrench-Events")` : str;
-        return str;
-    });
-
-    return lua;
-}
-
-const REIMPORT_TEMPLATE = `-- PIPEWRENCH --
-if _G.Events.OnPipeWrenchBoot == nil then
-  _G.triggerEvent('OnPipeWrenchBoot', false)
-end
-_G.Events.OnPipeWrenchBoot.Add(function(____flag____)
-  if ____flag____ ~= true then return end
-  -- {IMPORTS}
-end)
-----------------`;
-
-/**
- * Apply reimport script to output file
- */
-function applyReimportScript(lua: string): string {
-    const assignments: string[] = [];
-    const lines = lua.split('\n');
-
-    // Look for any PipeWrench assignments.
-    for (const line of lines) {
-        if (
-        line.indexOf('local ') === 0 &&
-        line.indexOf('____pipewrench.') !== -1
-        ) {
-        assignments.push(line.replace('local ', ''));
-        }
+async function copyImages(outDir: string, modId: string) {
+  const printedDir = isProjectDirScope(outDir) || outDir;
+  const modSourceDir = join(normalize(PZPW_ASSETS_DIR), "mods", modId);
+  if (existsSync(modSourceDir)) {
+    const files = await readdir(modSourceDir);
+    for (const file of files) {
+      if (file.toLowerCase().endsWith(".png")) {
+        logger.log(
+          logger.color.info(modId),
+          logger.color.info(`Copying mod image '${basename(file)}' to '${printedDir}'...`),
+        );
+        copyFile(join(modSourceDir, file), join(outDir, basename(file)));
+      }
     }
-    // Only generate a reimport codeblock if there's anything to import.
-    if (!assignments.length) return lua;
+  } else {
+    logger.log(logger.color.warn(modId), logger.color.warn(`Missing image assets directory '${modSourceDir}'.`));
+  }
+}
 
-    // Take out the returns statement so we can insert before it.
-    lines.pop();
-    const returnLine: string = lines.pop() as string;
-    lines.push('');
-
-    // Build the reimport event.
-    let compiledImports = '';
-    for (const assignment of assignments) compiledImports += `${assignment}\n`;
-    const reimports = REIMPORT_TEMPLATE.replace(
-        '-- {IMPORTS}',
-        compiledImports.substring(0, compiledImports.length - 1)
+/**
+ * Copy mod assets to dest dir
+ * @param {string} outDir
+ * @param {string} modId
+ * @returns {Promise<void>}
+ */
+async function copyMedia(outDir: string, modId: string) {
+  const printedDir = isProjectDirScope(outDir) || outDir;
+  const mediaSourceDir = join(normalize(PZPW_ASSETS_DIR), "mods", modId, "media");
+  if (existsSync(mediaSourceDir)) {
+    const mediaDestDir = join(outDir, "media");
+    logger.log(
+      logger.color.info(modId),
+      logger.color.info(`Copying 'media' assets to '${join(printedDir, "media")}'...`),
     );
+    copyDirRecursiveTo(mediaSourceDir, mediaDestDir, [".ts", ".gitkeep"]);
+  } else {
+    logger.log(logger.color.warn(modId), logger.color.warn(`Missing 'media' assets directory '${mediaSourceDir}'.`));
+  }
+}
 
-    return `${lines.join('\n')}\n${reimports}\n\n${returnLine}\n`;
+/**
+ * Copy mod source files ignore typescript files
+ * @param {string} sourceDir
+ * @param {string} outDir
+ * @param {string} modId
+ * @returns {Promise<void>}
+ */
+async function copySourceFiles(sourceDir: string, outDir: string, modId: string) {
+  const mediaDestDir = join(outDir, "media", "lua");
+  const printedDir = isProjectDirScope(mediaDestDir) || mediaDestDir;
+  logger.log(logger.color.info(modId), logger.color.info(`Copying source files to '${printedDir}'...`));
+  copyDirRecursiveTo(sourceDir, mediaDestDir, [".ts", ".gitkeep"]);
+}
+
+/**
+ * Copy license file to mod dest directory
+ * @param {string} outDir
+ * @param {string} modId
+ * @returns {Promise<void>}
+ */
+async function copyLicenseFile(outDir: string, modId: string) {
+  const printedDir = isProjectDirScope(outDir) || outDir;
+  const licensePath = getLicensePath(modId);
+  if (licensePath) {
+    const mediaDestDir = join(outDir, "LICENSE.txt");
+    logger.log(logger.color.info(modId), logger.color.info(`Copying LICENSE.txt to '${join(printedDir)}'...`));
+    await copyFile(licensePath, mediaDestDir);
+  }
+}
+
+/**
+ * Copy compiled mod directory to cachedir
+ * @param {string} outDir
+ * @param {string} cacheDir
+ * @param {string} modId
+ * @returns {Promise<void>}
+ */
+async function copyCompiledMods(outDir: string, cacheDir: string, modId: string) {
+  const inPath = join(outDir, modId);
+  const cacheDirOut = join(cacheDir, "mods", modId);
+  logger.log(logger.color.info(modId), logger.color.info(`Copying '${inPath}' to '${cacheDirOut}'...`));
+  copyDirRecursiveTo(inPath, cacheDirOut);
 }
 
 /**
  * Compile mods into dist directory
- * @param pzpwConfig 
- * @param modIds 
+ * @param pzpwConfig
+ * @param modIds
  */
 export async function ModsCompiler(pzpwConfig: PZPWConfig, modIds: string[], cachedir: string) {
-    // Transpile typescript
-    console.log(chalk.yellowBright(`- Transpiling ${modIds.length} mod(s)...`));
-    const transpileResult = await transpile(modIds);
-    console.log(chalk.yellowBright(`- Transpiled ${Object.keys(transpileResult).length} typescript file(s)! `));
+  const compiledModIds: string[] = [];
 
-    // Prepare dist directory
-    console.log(chalk.yellowBright("- Deleting directory 'dist'..."));
-    await rm("dist", { force: true, recursive: true });
-    for (const modId of modIds) {
-        console.log(chalk.yellowBright(`- Creating directory 'dist/${modId}'...`));
-        await mkdir(join("dist", modId), { recursive: true });
+  // Transpile typescript
+  logger.log(logger.color.info(`- Transpiling ${modIds.length} mod(s)...`));
+  const outDir = getOutDir();
+  const printedDir = isProjectDirScope(outDir) || outDir;
+
+  logger.log(logger.color.info(`- Deleting directory '${printedDir}'...`));
+  await rm(outDir, { force: true, recursive: true });
+
+  for (const modId of modIds) {
+    logger.log("");
+    logger.log(logger.color.info(modId), logger.color.info(`Transpiling...`));
+    const { files, rootDir } = await transpileMod(modId);
+
+    if (!existsSync(rootDir)) {
+      logger.log("");
+      logger.log(
+        logger.color.error(PZPW_ERRORS.COMPILER_ERROR),
+        logger.color.error(`Source directory doesn't exist: ${rootDir}`),
+      );
+      continue;
     }
 
-    // Generate mod.info
-    for (const modId of modIds) {
-        await generateModInfo(pzpwConfig, modId);
+    logger.log(
+      logger.color.info(modId),
+      logger.color.info(`Transpiled ${Object.keys(files).length} typescript file(s)!`),
+    );
+
+    logger.log(logger.color.info(modId), logger.color.info(`Creating directory '${join(printedDir, modId)}'...`));
+    const modOutDir = join(outDir, modId);
+    await mkdir(modOutDir, { recursive: true });
+
+    await generateModInfo(pzpwConfig, modId, modOutDir);
+    await copyImages(modOutDir, modId);
+    await copyMedia(modOutDir, modId);
+    await copySourceFiles(rootDir, modOutDir, modId);
+    await copyLicenseFile(modOutDir, modId);
+
+    const [luaModules, luaSources] = partitionBy(
+      Object.entries(files),
+      ([outputFile]) => isGlobal(outputFile) || isLuaModule(outputFile),
+    );
+
+    for (const [fileName, luaCode] of luaSources) {
+      const printedDir = isProjectDirScope(modOutDir) || modOutDir;
+      const luaOutPath = join(modOutDir, "media/lua", fileName);
+      let code = fixRequire(modId, luaCode);
+      code = applyReimportScript(code);
+      logger.log(logger.color.info(modId), logger.color.info(`Copying lua source '${fileName}' to '${printedDir}'.`));
+      await mkdir(dirname(luaOutPath), { recursive: true });
+      await writeFile(luaOutPath, code);
     }
 
-    // Copy images
-    for (const modId of modIds) {
-        const modSourceDir = join("assets", "mods", modId);
-        const files = await readdir(modSourceDir);
-        for (const file of files) {
-            if (file.toLowerCase().endsWith(".png")) {
-                console.log(chalk.yellowBright(`- Copying mod image '${basename(file)}' to 'dist/${modId}/${basename(file)}'...`));
-                copyFile(join(modSourceDir, file), join("dist", modId, basename(file)));
-            }
-        }
+    logger.log(logger.color.info(`\n- Copying lua modules...`));
+    const modules = mergeFilesByModule(Object.fromEntries(luaModules));
+    const modulesDir = join(modOutDir, normalize(LUA_SHARED_MODULES_DIR));
+    await mkdir(modulesDir, { recursive: true });
+    for (const moduleName in modules) {
+      logger.log(logger.color.info(moduleName), logger.color.info(`Copying lua module to '${modulesDir}'.`));
+
+      for (const module of modules[moduleName]) {
+        const key = Object.keys(module)[0];
+        await mkdir(dirname(join(modulesDir, key)), { recursive: true });
+        await writeFile(join(modulesDir, key), module[key]);
+      }
     }
 
-    // Copy media
-    for (const modId of modIds) {
-        const mediaSourceDir = join("assets", "mods", modId, "media");
-        const mediaDestDir = join("dist", modId, "media");
-        console.log(chalk.yellowBright(`- Copying assets 'media' to 'dist/${modId}/media/'...`));
-        copyDirRecursiveTo(mediaSourceDir, mediaDestDir, [".ts", ".gitkeep"]);
-    }
-    
-    // Copy source files
-    for (const modId of modIds) {
-        const mediaSourceDir = join("src", modId);
-        const mediaDestDir = join("dist", modId, "media", "lua");
-        console.log(chalk.yellowBright(`- Copying source files to 'dist/${modId}/media/lua/'...`));
-        copyDirRecursiveTo(mediaSourceDir, mediaDestDir, [".ts", ".gitkeep"]);
-    }
+    compiledModIds.push(modId);
+  }
 
-    // Copy license file
-    const licensePath = join("assets", "LICENSE.txt");
-    if (existsSync(licensePath)) {
-        for (const modId of modIds) {
-            const mediaDestDir = join("dist", modId, "LICENSE.txt");
-            console.log(chalk.yellowBright(`- Copying LICENSE.txt to 'dist/${modId}'...`));
-            await copyFile(licensePath, mediaDestDir);
-        }
-    }
-
-    // Add transpiled lua
-    for (const fileName of Object.keys(transpileResult)) {
-        if (fileName.startsWith("src/")) {
-            const split = fileName.replace("src/", "").split("/");
-
-            const modId = split[0];                         // grab modId
-            split.shift();                                  // remove modId
-            let filePath = split.shift();                   // add scope
-            
-            filePath = join(filePath, split.join("/"));     // add modId and the rest
-
-            const luaOutPath = join("dist", modId, "media", "lua", filePath.replace(".ts", ".lua"));
-            let content = fixRequire(modId, transpileResult[fileName]);
-            content = applyReimportScript(content);
-
-            console.log(chalk.yellowBright(`- Copying lua '${fileName}' to '${luaOutPath}'`));
-            await mkdir(dirname(luaOutPath), { recursive: true });
-            await writeFile(luaOutPath, content);
-        }
-    }
-
-    // Copy lualib_bundle
-    for (const modId of modIds) {
-        const mediaSource = join(APP_PATH, "node_modules/typescript-to-lua/dist/lualib/lualib_bundle.lua");
-        const mediaDest = join("dist", modId, "media", "lua", "shared", modId, "lualib_bundle.lua");
-        console.log(chalk.yellowBright(`- Copying 'lualib_bundle' to 'dist/${modId}/media/lua/shared/${modId}/'...`));
-        copyFileRecursiveTo(mediaSource, mediaDest);
-    }
-
-    // Copy PipeWrench
-    for (const modId of modIds) {
-        const mediaSource = "node_modules/@asledgehammer/pipewrench/PipeWrench.lua";
-        const mediaDest = join("dist", modId, "media", "lua", "shared", modId, "PipeWrench.lua");
-        console.log(chalk.yellowBright(`- Copying 'PipeWrench' to 'dist/${modId}/media/lua/shared/${modId}/'...`));
-        copyFileRecursiveTo(mediaSource, mediaDest, (content: string) => fixRequire(modId, content));
-    }
-
-    // Copy PipeWrench-Events
-    for (const modId of modIds) {
-        const mediaSource = "node_modules/@asledgehammer/pipewrench-events/PipeWrench-Events.lua";
-        const mediaDest = join("dist", modId, "media", "lua", "shared", modId, "PipeWrench-Events.lua");
-        console.log(chalk.yellowBright(`- Copying 'PipeWrench-Events' to 'dist/${modId}/media/lua/shared/${modId}/'...`));
-        copyFileRecursiveTo(mediaSource, mediaDest, (content: string) => fixRequire(modId, content));
-    }
-
-    // Copy generated workshop directory to cachedir
-    for (const modId of modIds) {
-        const inPath = join("dist", modId);
-        const cachedirOut = join(cachedir, "mods", modId);
-        console.log(chalk.yellowBright(`- Copying '${inPath}' to '${cachedirOut}'...`));
-        copyDirRecursiveTo(inPath, cachedirOut);
-    }
+  logger.log(logger.color.info(`\n- Compile ${compiledModIds.length} mod(s) [ ${compiledModIds.join(", ")} ].`));
+  logger.log(logger.color.info(`- Copying compiled mods...`));
+  for (const mod of compiledModIds) {
+    await copyCompiledMods(outDir, cachedir, mod);
+  }
 }
