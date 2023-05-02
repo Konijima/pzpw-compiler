@@ -35,9 +35,12 @@ export async function getPZPWConfig(): Promise<PZPWConfig> {
  * @returns
  */
 export async function getIntro() {
-  const { author, version } = await getPackageJson();
+  const { author, version, contributors } = await getPackageJson();
   const filePath = join(APP_PATH, "INTRO.txt");
-  return (await readFile(filePath, "utf-8")).replaceAll("{author}", author).replaceAll("{version}", version);
+  return (await readFile(filePath, "utf-8"))
+    .replaceAll("{author}", author)
+    .replaceAll("{contributors}", contributors.join(", "))
+    .replaceAll("{version}", version);
 }
 
 /**
