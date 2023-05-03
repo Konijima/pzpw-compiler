@@ -140,3 +140,16 @@ export function getTsConfig(searchPath = "./", configName = "tsconfig.json") {
   const configFile = ts.readConfigFile(configFileName, ts.sys.readFile);
   return ts.parseJsonConfigFileContent(configFile.config, ts.sys, "./");
 }
+
+/**
+ * Find line and column of text by position
+ * @param {string} text
+ * @param {number} pos
+ * @returns {number[]}
+ */
+export function findPos(text: string, pos: number) {
+  const textLines = text.substring(0, pos).split("\n");
+  const line = textLines.length;
+  const column = textLines[line - 1].length + 1;
+  return [line, column];
+}
