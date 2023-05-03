@@ -87,7 +87,7 @@ async function generateModInfo(pzpwConfig: PZPWConfig, modId: string, outDir: st
 /**
  * Fix the requires
  */
-function fixRequire(modId: string, lua: string) {
+function fixRequire(lua: string) {
   if (lua.length === 0) return "";
 
   // Zed regex
