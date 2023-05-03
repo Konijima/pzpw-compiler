@@ -87,7 +87,7 @@ async function generateModInfo(pzpwConfig: PZPWConfig, modId: string, outDir: st
 /**
  * Fix the requires
  */
-function fixRequire(modId: string, lua: string) {
+function fixRequire(lua: string) {
   if (lua.length === 0) return "";
 
   // Zed regex
@@ -164,18 +164,18 @@ function getModuleName(module: string): string {
  */
 function mergeFilesByModule(modules: Record<string, string>): Record<string, { [p: string]: string }[]> {
   const unite: Record<string, { [file: string]: string }[]> = {};
-  Object.keys(modules).forEach(file => {
-    if (isLuaModule(file)) {
-      unite[getModuleName(file)] = [
-        ...(unite[getModuleName(file)] || []),
+  Object.entries(modules).forEach(([fileName, luaCode]) => {
+    if (isLuaModule(fileName)) {
+      unite[getModuleName(fileName)] = [
+        ...(unite[getModuleName(fileName)] || []),
         {
-          [file]: modules[file],
+          [fileName]: fixRequire(luaCode),
         },
       ];
     } else {
-      unite[file] = [{ [file]: modules[file] }];
+      unite[fileName] = [{ [fileName]: luaCode }];
     }
-  });
+  })
   return unite;
 }
 

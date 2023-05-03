@@ -161,7 +161,7 @@ export async function ModsCompiler(pzpwConfig: PZPWConfig, modIds: string[], cac
     for (const [fileName, luaCode] of luaSources) {
       const printedDir = isProjectDirScope(modOutDir) || modOutDir;
       const luaOutPath = join(modOutDir, "media/lua", fileName);
-      let code = fixRequire(modId, luaCode);
+      let code = fixRequire(luaCode);
       code = applyReimportScript(code);
       logger.log(logger.color.info(modId), logger.color.info(`Copying lua source '${fileName}' to '${printedDir}'.`));
       await mkdir(dirname(luaOutPath), { recursive: true });
