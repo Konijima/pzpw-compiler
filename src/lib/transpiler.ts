@@ -4,6 +4,7 @@ import { CompilerOptions, EmitResult, parseConfigFileWithSystem, Transpiler } fr
 import { logger } from "./logger.js";
 import { PZPW_ERRORS } from "./constants.js";
 import { getOutDir } from "./compilers/utils.js";
+import { findPos } from "./utils.js";
 
 export type TranspileResult = {
   emitResult: EmitResult;
@@ -92,13 +93,18 @@ export async function transpileMod(modId: string, compilerOptions?: CompilerOpti
     // Print transpile errors
     emitResult.diagnostics.forEach(diagnostic => {
       if (diagnostic.code !== 18003) {
+        let file: string;
         // ignore no files to transpile error
         const messageText = isDiagnosticMessageChain(diagnostic.messageText)
           ? diagnostic.messageText.messageText
           : diagnostic.messageText;
+        if (Number.isInteger(diagnostic.start)) {
+          const [line, column] = findPos(diagnostic.file.text, diagnostic.start);
+          file = `${diagnostic.file.fileName}:${line}:${column}`;
+        }
         logger.log(
           logger.color.error(PZPW_ERRORS.TRANSPILE_ERROR, diagnostic.code),
-          logger.color.error(...[`${messageText}`, `\nFile: ${diagnostic.file?.fileName}\n`]),
+          logger.color.error(...[`${messageText}\n`, file && `File: ${file}\n`]),
         );
       }
     });

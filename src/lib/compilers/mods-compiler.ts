@@ -149,9 +149,9 @@ export async function ModsCompiler(pzpwConfig: PZPWConfig, modIds: string[], cac
 
     await generateModInfo(pzpwConfig, modId, modOutDir);
     await copyImages(modOutDir, modId);
+    await copyLicenseFile(modOutDir, modId);
     await copyMedia(modOutDir, modId);
     await copySourceFiles(rootDir, modOutDir, modId);
-    await copyLicenseFile(modOutDir, modId);
 
     const [luaModules, luaSources] = partitionBy(
       Object.entries(files),
@@ -168,17 +168,19 @@ export async function ModsCompiler(pzpwConfig: PZPWConfig, modIds: string[], cac
       await writeFile(luaOutPath, code);
     }
 
-    logger.log(logger.color.info(`\n- Copying lua modules...`));
-    const modules = mergeFilesByModule(Object.fromEntries(luaModules));
-    const modulesDir = join(modOutDir, normalize(LUA_SHARED_MODULES_DIR));
-    await mkdir(modulesDir, { recursive: true });
-    for (const moduleName in modules) {
-      logger.log(logger.color.info(moduleName), logger.color.info(`Copying lua module to '${modulesDir}'.`));
+    if (luaModules.length) {
+      logger.log(logger.color.info(`\n- Copying lua modules...`));
+      const modules = mergeFilesByModule(Object.fromEntries(luaModules));
+      const modulesDir = join(modOutDir, normalize(LUA_SHARED_MODULES_DIR));
+      await mkdir(modulesDir, { recursive: true });
+      for (const moduleName in modules) {
+        logger.log(logger.color.info(moduleName), logger.color.info(`Copying lua module to '${modulesDir}'.`));
 
-      for (const module of modules[moduleName]) {
-        const key = Object.keys(module)[0];
-        await mkdir(dirname(join(modulesDir, key)), { recursive: true });
-        await writeFile(join(modulesDir, key), module[key]);
+        for (const module of modules[moduleName]) {
+          const key = Object.keys(module)[0];
+          await mkdir(dirname(join(modulesDir, key)), { recursive: true });
+          await writeFile(join(modulesDir, key), module[key]);
+        }
       }
     }
 
