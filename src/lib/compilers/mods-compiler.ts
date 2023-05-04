@@ -1,9 +1,9 @@
 import { basename, dirname, join, normalize } from "path";
 import { PZPWConfig } from "pzpw-config-schema";
 import { copyFile, mkdir, readdir, rm, writeFile } from "fs/promises";
-import { transpileMod } from "../transpiler.js";
-import { copyDirRecursiveTo, partitionBy } from "../utils.js";
-import { logger } from "../logger.js";
+import { transpileMod } from "../transpiler";
+import { copyDirRecursiveTo, partitionBy } from "../utils";
+import { logger } from "../logger";
 import {
   applyReimportScript,
   fixRequire,
@@ -14,9 +14,22 @@ import {
   isLuaModule,
   isProjectDirScope,
   mergeFilesByModule,
-} from "./utils.js";
-import { LUA_SHARED_MODULES_DIR, PZPW_ASSETS_DIR, PZPW_ERRORS } from "../constants.js";
+} from "./utils";
+import { LUA_SHARED_MODULES_DIR, PZPW_ASSETS_DIR, PZPW_ERRORS } from "../constants";
 import { existsSync } from "fs";
+
+export enum ModuleScope {
+  shared = "shared",
+  client = "client",
+  server = "server",
+  none = "none"
+}
+
+const isRejected = (input: PromiseSettledResult<unknown>): input is PromiseRejectedResult =>
+  input.status === 'rejected'
+
+const isFulfilled = <T>(input: PromiseSettledResult<T>): input is PromiseFulfilledResult<T> =>
+  input.status === 'fulfilled'
 
 /**
  * Copy mod images to dest dir
@@ -124,6 +137,15 @@ export async function ModsCompiler(pzpwConfig: PZPWConfig, modIds: string[], cac
   logger.log(logger.color.info(`- Deleting directory '${printedDir}'...`));
   await rm(outDir, { force: true, recursive: true });
 
+  // const modsToTranspile = modIds.map(modId => transpileMod(modId));
+  // Promise.allSettled(modsToTranspile).then((results) => {
+  //   results.forEach((result) => {
+  //     if (isFulfilled(result)) {
+  //       const { value } = result;
+  //     }
+  //   })
+  // });
+
   for (const modId of modIds) {
     logger.log("");
     logger.log(logger.color.info(modId), logger.color.info(`Transpiling...`));
@@ -161,8 +183,9 @@ export async function ModsCompiler(pzpwConfig: PZPWConfig, modIds: string[], cac
     for (const [fileName, luaCode] of luaSources) {
       const printedDir = isProjectDirScope(modOutDir) || modOutDir;
       const luaOutPath = join(modOutDir, "media/lua", fileName);
-      let code = fixRequire(luaCode);
-      code = applyReimportScript(code);
+      let [scope] = fileName.split("/") as Array<ModuleScope>;
+      if (!Object.keys(ModuleScope).includes(scope)) scope = ModuleScope.none;
+      const code = applyReimportScript(fixRequire(scope, luaCode));
       logger.log(logger.color.info(modId), logger.color.info(`Copying lua source '${fileName}' to '${printedDir}'.`));
       await mkdir(dirname(luaOutPath), { recursive: true });
       await writeFile(luaOutPath, code);

@@ -1,10 +1,25 @@
 import { isAbsolute, relative, resolve } from "path";
-import ts, { ParsedCommandLine } from "typescript";
-import { CompilerOptions, EmitResult, parseConfigFileWithSystem, Transpiler } from "typescript-to-lua";
-import { logger } from "./logger.js";
-import { PZPW_ERRORS } from "./constants.js";
-import { getOutDir } from "./compilers/utils.js";
-import { findPos } from "./utils.js";
+import ts from "typescript";
+import {
+  CompilerOptions,
+  EmitFile,
+  EmitResult,
+  getEmitPath,
+  getSourceDir,
+  isBundleEnabled,
+  parseConfigFileWithSystem,
+  ParsedCommandLine,
+  ProcessedFile,
+  Transpiler,
+} from "typescript-to-lua";
+import { logger } from "./logger";
+import { PZPW_ERRORS } from "./constants";
+import { getOutDir } from "./compilers/utils";
+import { findPos } from "./utils";
+import { normalizeSlashes } from "typescript-to-lua/dist/utils";
+import { getBundleResult } from "typescript-to-lua/dist/transpilation/bundle";
+import * as performance from "typescript-to-lua/dist/measure-performance";
+import { resolveDependencies } from "./resolve";
 
 export type TranspileResult = {
   emitResult: EmitResult;
@@ -14,6 +29,7 @@ export type TranspileResult = {
 
 export interface TranspileModResult extends Omit<TranspileResult, "emitResult"> {
   files: { [fileName: string]: string };
+  modId: string;
 }
 
 function isDiagnosticMessageChain(
@@ -25,7 +41,7 @@ function isDiagnosticMessageChain(
 /**
  * Get only target mod files
  * @param {string} modId
- * @param {ts.ParsedCommandLine} config
+ * @param {ParsedCommandLine} config
  * @returns {string[]}
  */
 function getModRootNames(modId: string, config: ParsedCommandLine): string[] {
@@ -37,6 +53,61 @@ function getModRootNames(modId: string, config: ParsedCommandLine): string[] {
 
 function getModRootDir(modId: string, options: CompilerOptions) {
   return options.rootDir ? resolve(options.rootDir, modId) : resolve("src", modId);
+}
+
+class PZPWTranspiler extends Transpiler {
+  constructor() {
+    super();
+  }
+
+  protected getEmitPlan(
+    program: ts.Program,
+    diagnostics: ts.Diagnostic[],
+    files: ProcessedFile[],
+  ): {
+    emitPlan: EmitFile[];
+  } {
+    performance.startSection("getEmitPlan");
+    const options = program.getCompilerOptions() as CompilerOptions;
+
+    if (options.tstlVerbose) {
+      console.log("Constructing emit plan");
+    }
+
+    // Resolve imported modules and modify output Lua requires
+    const resolutionResult = resolveDependencies(program, files, this.emitHost);
+    diagnostics.push(...resolutionResult.diagnostics);
+
+    const lualibRequired = resolutionResult.resolvedFiles.some(f => f.fileName === "lualib_bundle");
+    if (lualibRequired) {
+      // Remove lualib placeholders from resolution result
+      resolutionResult.resolvedFiles = resolutionResult.resolvedFiles.filter(f => f.fileName !== "lualib_bundle");
+
+      if (options.tstlVerbose) {
+        console.log("Including lualib bundle");
+      }
+      // Add lualib bundle to source dir 'virtually', will be moved to correct output dir in emitPlan
+      const fileName = normalizeSlashes(resolve(getSourceDir(program), "lualib_bundle.lua"));
+      const code = this["getLuaLibBundleContent"](options, resolutionResult.resolvedFiles);
+      resolutionResult.resolvedFiles.unshift({ fileName, code });
+    }
+
+    let emitPlan: EmitFile[];
+    if (isBundleEnabled(options)) {
+      const [bundleDiagnostics, bundleFile] = getBundleResult(program, resolutionResult.resolvedFiles);
+      diagnostics.push(...bundleDiagnostics);
+      emitPlan = [bundleFile];
+    } else {
+      emitPlan = resolutionResult.resolvedFiles.map(file => ({
+        ...file,
+        outputPath: getEmitPath(file.fileName, program),
+      }));
+    }
+
+    performance.endSection("getEmitPlan");
+
+    return { emitPlan };
+  }
 }
 
 function transpile(
@@ -59,7 +130,7 @@ function transpile(
   config.options.rootDir = getModRootDir(modId, config.options);
   const program = ts.createProgram(rootNames, config.options);
   const preEmitDiagnostics = ts.getPreEmitDiagnostics(program);
-  const { diagnostics: transpileDiagnostics, emitSkipped } = new Transpiler().emit({ program, writeFile });
+  const { diagnostics: transpileDiagnostics, emitSkipped } = new PZPWTranspiler().emit({ program, writeFile });
   const diagnostics = ts.sortAndDeduplicateDiagnostics([...preEmitDiagnostics, ...transpileDiagnostics]);
 
   return {
@@ -77,7 +148,7 @@ function transpile(
  */
 export async function transpileMod(modId: string, compilerOptions?: CompilerOptions) {
   return new Promise((complete: (result: TranspileModResult) => void) => {
-    const files: TranspileModResult["files"] = {};
+    const files: Record<string, string> = {};
     const outDir = getOutDir();
 
     const { emitResult, ...rest } = transpile(
@@ -110,6 +181,7 @@ export async function transpileMod(modId: string, compilerOptions?: CompilerOpti
     });
 
     complete({
+      modId,
       files,
       ...rest,
     });

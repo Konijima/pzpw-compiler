@@ -153,3 +153,7 @@ export function findPos(text: string, pos: number) {
   const column = textLines[line - 1].length + 1;
   return [line, column];
 }
+export function formatPathToLuaPath(filePath: string): string {
+  filePath = filePath.replace(/\.json$/, "");
+  return filePath;
+}

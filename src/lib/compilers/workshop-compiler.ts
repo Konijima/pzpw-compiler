@@ -2,8 +2,8 @@ import chalk from "chalk";
 import { basename, join } from "path";
 import { PZPWConfig } from "pzpw-config-schema";
 import { copyFile, mkdir, readFile, rm, writeFile } from "fs/promises";
-import { copyDirRecursiveTo } from "../utils.js";
-import { getOutDir } from "./utils.js";
+import { copyDirRecursiveTo } from "../utils";
+import { getOutDir } from "./utils";
 
 /**
  * Generate the workshop txt file
