@@ -1,7 +1,7 @@
 import { basename, dirname, join, normalize } from "path";
 import { PZPWConfig } from "pzpw-config-schema";
 import { copyFile, mkdir, readdir, rm, writeFile } from "fs/promises";
-import { transpileMod } from "../transpiler.js";
+import { transpileMod, transpileModAsync } from "../transpiler.js";
 import { copyDirRecursiveTo, partitionBy } from "../utils.js";
 import { logger } from "../logger.js";
 import {
@@ -120,7 +120,7 @@ async function compileMod(pzpwConfig: PZPWConfig, modId: string) {
 
   logger.log("");
   logger.log(logger.color.info(modId), logger.color.info(`Transpiling...`));
-  const { files, rootDir } = await transpileMod(modId);
+  const { files, rootDir } = await transpileModAsync(modId);
 
   if (!existsSync(rootDir)) {
     logger.log("");
