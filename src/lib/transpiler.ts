@@ -1,10 +1,11 @@
-import { isAbsolute, relative, resolve } from "path";
+import { isAbsolute, relative, resolve, join } from "path";
 import ts, { ParsedCommandLine } from "typescript";
 import { CompilerOptions, EmitResult, parseConfigFileWithSystem, Transpiler } from "typescript-to-lua";
 import { logger } from "./logger.js";
 import { PZPW_ERRORS } from "./constants.js";
 import { getOutDir } from "./compilers/utils.js";
-import { findPos } from "./utils.js";
+import { APP_PATH, findPos } from "./utils.js";
+import { fork } from "child_process";
 
 export type TranspileResult = {
   emitResult: EmitResult;
@@ -73,7 +74,7 @@ function transpile(
  * Transpile mod and return file names with lua code content
  * @param {string} modId
  * @param {CompilerOptions} compilerOptions
- * @returns {Promise<TranspileResult>}
+ * @returns {Promise<TranspileModResult>}
  */
 export async function transpileMod(modId: string, compilerOptions?: CompilerOptions) {
   return new Promise((complete: (result: TranspileModResult) => void) => {
@@ -113,5 +114,19 @@ export async function transpileMod(modId: string, compilerOptions?: CompilerOpti
       files,
       ...rest,
     });
+  });
+}
+
+/**
+ * Transpile mod in child process
+ * @param {string} modId
+ * @param {CompilerOptions} compilerOptions
+ * @returns {Promise<TranspileModResult>}
+ */
+export async function transpileModAsync(modId: string, compilerOptions?: CompilerOptions) {
+  return new Promise<TranspileModResult>((resolve, reject) => {
+    const child = fork(join(APP_PATH, "dist", "lib", "transpilerProcess.js"), [modId, compilerOptions ? JSON.stringify(compilerOptions) : undefined]);
+    child.on('message', (result: TranspileModResult) => resolve(result));
+    child.on('error', (err) => reject(err));
   });
 }
