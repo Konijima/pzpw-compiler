@@ -2,10 +2,9 @@ import { PZPWConfig } from "pzpw-config-schema";
 import { writeFile } from "fs/promises";
 import { dirname, isAbsolute, join, normalize, resolve, sep } from "path";
 import { existsSync, readFileSync } from "fs";
-import { LUA_MODULE_DIR, PZPW_ASSETS_DIR, PZPW_ERRORS } from "../constants";
+import { ModuleScope, PZPW_ASSETS_DIR, PZPW_ERRORS } from "../constants";
 import { logger } from "../logger";
 import { APP_PATH, getTsConfig } from "../utils";
-import { ModuleScope } from "./mods-compiler";
 
 const REIMPORT_TEMPLATE = readFileSync(
   join(APP_PATH, "node_modules/@asledgehammer/tstl-pipewrench/lua/reimport_template.lua"),
@@ -26,7 +25,7 @@ function isProjectDirScope(dir: string): string | undefined {
  * @returns {boolean}
  */
 function isLuaModule(filePath: string): boolean {
-  return filePath.indexOf(LUA_MODULE_DIR) === 0;
+  return filePath.indexOf(ModuleScope.lua_module) === 0;
 }
 
 /**
@@ -89,8 +88,12 @@ async function generateModInfo(pzpwConfig: PZPWConfig, modId: string, outDir: st
   );
 }
 
+function getScopeRegex(scope: ModuleScope) {
+  return new RegExp(`^(.*/${scope}/)|(${scope}/)`);
+}
+
 /**
- * Fix the requires
+ * Fix the requirements
  */
 function fixRequire(scope: ModuleScope, lua: string) {
   if (lua.length === 0) return "";
@@ -98,25 +101,26 @@ function fixRequire(scope: ModuleScope, lua: string) {
   const fix = (fromImport: string): string => {
     let toImport = fromImport;
     // Remove cross-references for client/server/shared.
-    if (toImport.startsWith(`${ModuleScope.shared}/`)) {
-      toImport = toImport.substring(`${ModuleScope.shared}/`.length);
-    } else if (toImport.startsWith(`${ModuleScope.client}/`)) {
+    if (getScopeRegex(ModuleScope.shared).test(toImport)) {
+      toImport = toImport.replace(getScopeRegex(ModuleScope.shared), "");
+    } else if (getScopeRegex(ModuleScope.client).test(toImport)) {
       if (scope === ModuleScope.server) {
         logger.log(
           logger.color.warn(PZPW_ERRORS.COMPILER_WARN),
           logger.color.warn(`Cannot reference code from src/client from src/server. ` + "(Code will fail when ran)"),
         );
       }
-      toImport = toImport.substring(`${ModuleScope.client}/`.length);
-    } else if (toImport.startsWith(`${ModuleScope.server}/`)) {
+      toImport = toImport.replace(getScopeRegex(ModuleScope.client), "");
+    } else if (getScopeRegex(ModuleScope.server).test(toImport)) {
       if (scope === ModuleScope.client) {
         logger.log(
           logger.color.warn(PZPW_ERRORS.COMPILER_WARN),
           logger.color.warn(`Cannot reference code from src/server from src/client. ` + "(Code will fail when ran)"),
         );
       }
-      toImport = toImport.substring(`${ModuleScope.server}/`.length);
+      toImport = toImport.replace(getScopeRegex(ModuleScope.server), "");
     }
+
     return toImport;
   };
 

@@ -53,10 +53,10 @@
   },
   "dependencies": {
     "@asledgehammer/tstl-pipewrench": "^0.0.15",
+    "@memoraike/typescript-to-lua": "^1.15.1",
     "chalk": "^5.2.0",
     "del-cli": "^5.0.0",
     "lua-types": "^2.13.1",
-    "pzpw-config-schema": "^1.0.2",
-    "typescript-to-lua": "~1.15.0"
+    "pzpw-config-schema": "^1.0.2"
   }
 }

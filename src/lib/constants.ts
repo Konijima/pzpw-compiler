@@ -1,11 +1,17 @@
 const PZPW_ASSETS_DIR = "assets";
 const LUA_SHARED_MODULES_DIR = "media/lua/shared";
-const LUA_MODULE_DIR = "lua_modules";
-
 enum PZPW_ERRORS {
   TRANSPILE_ERROR = "TRANSPILE ERROR",
   COMPILER_ERROR = "COMPILER_ERROR",
   COMPILER_WARN = "COMPILER_WARN",
 }
 
-export { PZPW_ASSETS_DIR, LUA_SHARED_MODULES_DIR, PZPW_ERRORS, LUA_MODULE_DIR };
+enum ModuleScope {
+  shared = "shared",
+  client = "client",
+  server = "server",
+  global = "global",
+  lua_module = "lua_modules"
+}
+
+export { PZPW_ASSETS_DIR, LUA_SHARED_MODULES_DIR, PZPW_ERRORS, ModuleScope };
