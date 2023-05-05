@@ -1,10 +1,14 @@
 import { PZPWConfig } from "pzpw-config-schema";
 import { writeFile } from "fs/promises";
 import { dirname, isAbsolute, join, normalize, resolve, sep } from "path";
-import { existsSync } from "fs";
-import { LUA_MODULE_DIR, PZPW_ASSETS_DIR, REIMPORT_TEMPLATE } from "../constants.js";
-import { logger } from "../logger.js";
-import { getTsConfig } from "../utils.js";
+import { existsSync, readFileSync } from "fs";
+import { ModuleScope, PZPW_ASSETS_DIR, PZPW_ERRORS } from "../constants";
+import { logger } from "../logger";
+import { APP_PATH, getTsConfig } from "../utils";
+
+const REIMPORT_TEMPLATE = readFileSync(
+  join(APP_PATH, "node_modules/@asledgehammer/tstl-pipewrench/lua/reimport_template.lua"),
+).toString();
 
 /**
  * Check if directory in project scope directory
@@ -21,7 +25,7 @@ function isProjectDirScope(dir: string): string | undefined {
  * @returns {boolean}
  */
 function isLuaModule(filePath: string): boolean {
-  return filePath.indexOf(LUA_MODULE_DIR) === 0;
+  return filePath.indexOf(ModuleScope.lua_module) === 0;
 }
 
 /**
@@ -84,26 +88,61 @@ async function generateModInfo(pzpwConfig: PZPWConfig, modId: string, outDir: st
   );
 }
 
+function getScopeRegex(scope: ModuleScope) {
+  return new RegExp(`^(.*/${scope}/)|(${scope}/)`);
+}
+
 /**
- * Fix the requires
+ * Fix the requirements
  */
-function fixRequire(lua: string) {
+function fixRequire(scope: ModuleScope, lua: string) {
   if (lua.length === 0) return "";
 
-  // Zed regex
-  const requireRegex = /require\("(.*)"\)/g;
-  const sepRegex = /[.]/g;
+  const fix = (fromImport: string): string => {
+    let toImport = fromImport;
+    // Remove cross-references for client/server/shared.
+    if (getScopeRegex(ModuleScope.shared).test(toImport)) {
+      toImport = toImport.replace(getScopeRegex(ModuleScope.shared), "");
+    } else if (getScopeRegex(ModuleScope.client).test(toImport)) {
+      if (scope === ModuleScope.server) {
+        logger.log(
+          logger.color.warn(PZPW_ERRORS.COMPILER_WARN),
+          logger.color.warn(`Cannot reference code from src/client from src/server. ` + "(Code will fail when ran)"),
+        );
+      }
+      toImport = toImport.replace(getScopeRegex(ModuleScope.client), "");
+    } else if (getScopeRegex(ModuleScope.server).test(toImport)) {
+      if (scope === ModuleScope.client) {
+        logger.log(
+          logger.color.warn(PZPW_ERRORS.COMPILER_WARN),
+          logger.color.warn(`Cannot reference code from src/server from src/client. ` + "(Code will fail when ran)"),
+        );
+      }
+      toImport = toImport.replace(getScopeRegex(ModuleScope.server), "");
+    }
 
-  lua = lua.replaceAll(requireRegex, match => {
-    let str = match.replaceAll(sepRegex, "/"); // Replace dots with slash
-    str = str.replaceAll("'", '"'); // Replace single quote to double quotes
+    return toImport;
+  };
 
-    const requireLen = 'require("'.length;
-    str = str.replace(str.slice(requireLen, str.indexOf("client/") + "client/".length), ""); // Strip the scope
-    str = str.replace(str.slice(requireLen, str.indexOf("server/") + "server/".length), ""); // Strip the scope
-    str = str.replace(str.slice(requireLen, str.indexOf("shared/") + "shared/".length), ""); // Strip the scope
-    return str;
-  });
+  let index = -1;
+  do {
+    let fromImport = "";
+    index = lua.indexOf('require("');
+    if (index !== -1) {
+      index += 9;
+      // Grab the requirement string.
+      while (index < lua.length) {
+        const char = lua.charAt(index++);
+        if (char === '"') break;
+        fromImport += char;
+      }
+      const toImport = fix(fromImport);
+      // Kahlua only works with '/', nor '.' in 'require(..)'.
+      const from = 'require("' + fromImport + '")';
+      const to = "require('" + toImport + "')";
+      lua = lua.replace(from, to);
+    }
+  } while (index !== -1);
 
   return lua;
 }
@@ -169,13 +208,13 @@ function mergeFilesByModule(modules: Record<string, string>): Record<string, { [
       unite[getModuleName(fileName)] = [
         ...(unite[getModuleName(fileName)] || []),
         {
-          [fileName]: fixRequire(luaCode),
+          [fileName]: luaCode,
         },
       ];
     } else {
       unite[fileName] = [{ [fileName]: luaCode }];
     }
-  })
+  });
   return unite;
 }
 

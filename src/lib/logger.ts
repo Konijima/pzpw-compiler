@@ -30,10 +30,8 @@ class Logger {
   }
 
   throw({ type, cause }: { type: string; cause: string | string[] }) {
-    throw `[${this.chalk.bgRgb(100, 0,0)(type)}]: ${this.color.error(cause)}`;
+    throw `[${this.chalk.bgRgb(100, 0, 0)(type)}]: ${this.color.error(cause)}`;
   }
 }
 
-export const logger = new Logger(
-  new ch.Chalk()
-);
+export const logger = new Logger(new ch.Chalk());

@@ -1,9 +1,9 @@
-import { basename, dirname, join, normalize } from "path";
+import { basename, dirname, join, normalize, resolve } from "path";
 import { PZPWConfig } from "pzpw-config-schema";
 import { copyFile, mkdir, readdir, rm, writeFile } from "fs/promises";
-import { transpileMod } from "../transpiler.js";
-import { copyDirRecursiveTo, partitionBy } from "../utils.js";
-import { logger } from "../logger.js";
+import { transpileMod } from "../transpiler";
+import { copyDirRecursiveTo, partitionBy } from "../utils";
+import { logger } from "../logger";
 import {
   applyReimportScript,
   fixRequire,
@@ -14,8 +14,8 @@ import {
   isLuaModule,
   isProjectDirScope,
   mergeFilesByModule,
-} from "./utils.js";
-import { LUA_SHARED_MODULES_DIR, PZPW_ASSETS_DIR, PZPW_ERRORS } from "../constants.js";
+} from "./utils";
+import { LUA_SHARED_MODULES_DIR, ModuleScope, PZPW_ASSETS_DIR, PZPW_ERRORS } from "../constants";
 import { existsSync } from "fs";
 
 /**
@@ -127,7 +127,9 @@ export async function ModsCompiler(pzpwConfig: PZPWConfig, modIds: string[], cac
   for (const modId of modIds) {
     logger.log("");
     logger.log(logger.color.info(modId), logger.color.info(`Transpiling...`));
-    const { files, rootDir } = await transpileMod(modId);
+    const { files, options } = await transpileMod(modId);
+    const rootDir = join(resolve(options.rootDir), modId);
+    const modOutDir = join(outDir, modId);
 
     if (!existsSync(rootDir)) {
       logger.log("");
@@ -138,13 +140,16 @@ export async function ModsCompiler(pzpwConfig: PZPWConfig, modIds: string[], cac
       continue;
     }
 
+    if (!Object.entries(files).length) {
+      continue;
+    }
+
     logger.log(
       logger.color.info(modId),
       logger.color.info(`Transpiled ${Object.keys(files).length} typescript file(s)!`),
     );
 
     logger.log(logger.color.info(modId), logger.color.info(`Creating directory '${join(printedDir, modId)}'...`));
-    const modOutDir = join(outDir, modId);
     await mkdir(modOutDir, { recursive: true });
 
     await generateModInfo(pzpwConfig, modId, modOutDir);
@@ -161,8 +166,9 @@ export async function ModsCompiler(pzpwConfig: PZPWConfig, modIds: string[], cac
     for (const [fileName, luaCode] of luaSources) {
       const printedDir = isProjectDirScope(modOutDir) || modOutDir;
       const luaOutPath = join(modOutDir, "media/lua", fileName);
-      let code = fixRequire(luaCode);
-      code = applyReimportScript(code);
+      let [scope] = fileName.split("/") as ModuleScope[];
+      if (!Object.keys(ModuleScope).includes(scope)) scope = ModuleScope.global;
+      const code = applyReimportScript(fixRequire(scope, luaCode));
       logger.log(logger.color.info(modId), logger.color.info(`Copying lua source '${fileName}' to '${printedDir}'.`));
       await mkdir(dirname(luaOutPath), { recursive: true });
       await writeFile(luaOutPath, code);

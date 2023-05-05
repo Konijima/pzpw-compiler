@@ -1,8 +1,12 @@
 import { PZPWConfig } from "pzpw-config-schema";
-import { dirname, extname, join, resolve } from "path";
+import path, { dirname, extname, isAbsolute, join, relative, resolve, sep } from "path";
 import { fileURLToPath } from "url";
 import { copyFile, mkdir, readdir, readFile, stat, writeFile } from "fs/promises";
 import ts from "typescript";
+import { ParsedCommandLine } from "@memoraike/typescript-to-lua";
+import { readdirSync } from "fs";
+import { ModuleScope, PZPW_ERRORS } from "./constants";
+import { logger } from "./logger";
 
 /**
  * Root directory of the running process
@@ -152,4 +156,140 @@ export function findPos(text: string, pos: number) {
   const line = textLines.length;
   const column = textLines[line - 1].length + 1;
   return [line, column];
+}
+
+/**
+ * Resolve mod directory
+ * @param modId
+ * @param directory
+ */
+export function getModRootDir(modId: string, directory: string): string {
+  const modRegex = new RegExp(`${modId}$`);
+  return directory.match(modRegex) ? directory : join(directory, modId);
+}
+
+export function normalizeFileName(
+  fileName: string,
+  modId: string,
+  rootDir: string,
+  outDir: string,
+): string | undefined {
+  const modOutDir = join(outDir, modId);
+  const localScopes = getDirectories(rootDir).filter(dir => dir !== modId);
+  const modRegex = new RegExp(`^${modId}/`);
+
+  const isLocal = (filePath: string) => {
+    const scope = getScope(filePath);
+    return scope.type === ModuleScope.global && localScopes.includes(scope.name);
+  };
+
+  if (isAbsolute(fileName)) {
+    const tryd = relative(modOutDir, fileName);
+    fileName = tryd
+      .split(sep)
+      .filter(p => ![".", ".."].includes(p))
+      .join(sep);
+  } else {
+    // when import from other local mod the program passing rootDir to the directory above level
+    fileName = fileName.replace(modRegex, "");
+  }
+  return isLocal(fileName) ? undefined : fileName;
+}
+
+/**
+ * Get file scope
+ * @param {string} filePath - relative path
+ */
+export function getScope(filePath: string): {
+  type: ModuleScope,
+  name: string
+} {
+  const [targetScope] = filePath.split(sep) as ModuleScope[];
+  let scope: ModuleScope;
+  switch (targetScope) {
+    case ModuleScope.shared:
+      scope = ModuleScope.shared;
+      break;
+    case ModuleScope.client:
+      scope = ModuleScope.client;
+      break;
+    case ModuleScope.server:
+      scope = ModuleScope.server;
+      break;
+    case ModuleScope.lua_module:
+      scope = ModuleScope.lua_module;
+      break;
+    default:
+      scope = ModuleScope.global
+  }
+
+  return {
+    type: scope,
+    name: targetScope
+  }
+}
+
+export function getSourceDir(parsedConfig: ParsedCommandLine) {
+  const rootDir = parsedConfig.options.rootDir;
+  if (rootDir && rootDir.length > 0) {
+    return path.isAbsolute(rootDir) ? rootDir : path.resolve(rootDir);
+  }
+  return getCommonSourceDirectory(parsedConfig.fileNames);
+}
+
+/**
+ * Return directories list
+ * @param {string} source - absolute path
+ */
+function getDirectories(source: string): string[] {
+  return isAbsolute(source)
+    ? readdirSync(source, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory())
+        .map(dirent => dirent.name)
+    : [];
+}
+
+export function getCommonSourceDirectory(paths: string[]): string {
+  // Split each path into its individual components
+  const splitPaths: string[][] = paths.map(path => path.split("/"));
+  // Find the shortest path in the list
+  const shortestPath: string[] = splitPaths.reduce((acc, curr) => (acc.length < curr.length ? acc : curr));
+  // Find the common directory
+  let common = "";
+  for (let i = 0; i < shortestPath.length; i++) {
+    const folder: string = shortestPath[i];
+    if (splitPaths.every(path => path[i] === folder)) {
+      common = join(common, folder);
+    } else {
+      break;
+    }
+  }
+
+  return resolve(common);
+}
+
+function isDiagnosticMessageChain(
+  messageText: string | ts.DiagnosticMessageChain,
+): messageText is ts.DiagnosticMessageChain {
+  return typeof messageText === "object" && "messageText" in messageText;
+}
+
+/**
+ * Log diagnostic message with file and line:column
+ * @param diagnostic
+ */
+export function diagnosticLog(diagnostic: ts.Diagnostic) {
+  let file: string;
+  // ignore no files to transpile error
+  const messageText = isDiagnosticMessageChain(diagnostic.messageText)
+    ? diagnostic.messageText.messageText
+    : diagnostic.messageText;
+  if (Number.isInteger(diagnostic.start)) {
+    const [line, column] = findPos(diagnostic.file.text, diagnostic.start);
+    file = `${diagnostic.file.fileName}:${line}:${column}`;
+  }
+  logger.log(
+    logger.color.error(PZPW_ERRORS.TRANSPILE_ERROR, diagnostic.code),
+    logger.color.error(...[`${messageText}\n`, file && `File: ${file}\n`]),
+  );
 }
