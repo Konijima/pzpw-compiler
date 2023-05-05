@@ -1,7 +1,7 @@
 import { basename, dirname, join, normalize } from "path";
 import { PZPWConfig } from "pzpw-config-schema";
 import { copyFile, mkdir, readdir, rm, writeFile } from "fs/promises";
-import { transpileMod, transpileModAsync } from "../transpiler.js";
+import { transpileModAsync } from "../transpiler.js";
 import { copyDirRecursiveTo, partitionBy } from "../utils.js";
 import { logger } from "../logger.js";
 import {

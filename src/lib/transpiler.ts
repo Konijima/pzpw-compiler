@@ -1,11 +1,11 @@
-import path, { isAbsolute, relative, resolve } from "path";
+import { isAbsolute, relative, resolve, join } from "path";
 import ts, { ParsedCommandLine } from "typescript";
 import { CompilerOptions, EmitResult, parseConfigFileWithSystem, Transpiler } from "typescript-to-lua";
 import { logger } from "./logger.js";
 import { PZPW_ERRORS } from "./constants.js";
 import { getOutDir } from "./compilers/utils.js";
 import { APP_PATH, findPos } from "./utils.js";
-import { exec, fork, spawn } from "child_process";
+import { fork } from "child_process";
 
 export type TranspileResult = {
   emitResult: EmitResult;
@@ -125,7 +125,7 @@ export async function transpileMod(modId: string, compilerOptions?: CompilerOpti
  */
 export async function transpileModAsync(modId: string, compilerOptions?: CompilerOptions) {
   return new Promise<TranspileModResult>((resolve, reject) => {
-    const child = fork(path.join(APP_PATH, "dist", "lib", "transpilerProcess.js"), [modId, compilerOptions ? JSON.stringify(compilerOptions) : undefined]);
+    const child = fork(join(APP_PATH, "dist", "lib", "transpilerProcess.js"), [modId, compilerOptions ? JSON.stringify(compilerOptions) : undefined]);
     child.on('message', (result: TranspileModResult) => resolve(result));
     child.on('error', (err) => reject(err));
   });
