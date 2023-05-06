@@ -1,6 +1,6 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S node --experimental-modules --es-module-specifier-resolution=node --experimental-json-modules --no-warnings
 
-import { Compiler } from "./lib/compiler.js";
+import { Compiler } from "./lib/compiler";
 
 (async () => {
 
