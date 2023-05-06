@@ -89,7 +89,7 @@ async function generateModInfo(pzpwConfig: PZPWConfig, modId: string, outDir: st
 }
 
 function getScopeRegex(scope: ModuleScope) {
-  return new RegExp(`^(.*/${scope}/)|(${scope}/)`);
+  return new RegExp(`^(.*/${scope}/)|^(${scope}/)`);
 }
 
 /**
