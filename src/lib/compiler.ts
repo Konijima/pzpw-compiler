@@ -5,10 +5,10 @@ import { existsSync } from "fs";
 import { rm } from "fs/promises";
 import { execSync } from "child_process";
 import { PZPWConfig } from "pzpw-config-schema";
-import { Settings } from "./settings";
-import { ModsCompiler } from "./compilers/mods-compiler";
-import { WorkshopCompiler } from "./compilers/workshop-compiler";
-import { getCommandHelp, getHelp, getIntro, getPZPWConfig } from "./utils";
+import { Settings } from "./settings.js";
+import { ModsCompiler } from "./compilers/mods-compiler.js";
+import { WorkshopCompiler } from "./compilers/workshop-compiler.js";
+import { getCommandHelp, getHelp, getIntro, getPZPWConfig } from "./utils.js";
 
 export class Compiler {
   private settings: Settings;

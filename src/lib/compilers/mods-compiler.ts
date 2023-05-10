@@ -1,9 +1,9 @@
 import { basename, dirname, join, normalize, resolve } from "path";
 import { PZPWConfig } from "pzpw-config-schema";
 import { copyFile, mkdir, readdir, rm, writeFile } from "fs/promises";
-import { transpileMod } from "../transpiler";
-import { copyDirRecursiveTo, partitionBy } from "../utils";
-import { logger } from "../logger";
+import { transpileMod } from "../transpiler.js";
+import { copyDirRecursiveTo, partitionBy } from "../utils.js";
+import { logger } from "../logger.js";
 import {
   applyReimportScript,
   fixRequire,
@@ -14,8 +14,8 @@ import {
   isLuaModule,
   isProjectDirScope,
   mergeFilesByModule,
-} from "./utils";
-import { LUA_SHARED_MODULES_DIR, ModuleScope, PZPW_ASSETS_DIR, PZPW_ERRORS } from "../constants";
+} from "./utils.js";
+import { LUA_SHARED_MODULES_DIR, ModuleScope, PZPW_ASSETS_DIR, PZPW_ERRORS } from "../constants.js";
 import { existsSync } from "fs";
 
 /**

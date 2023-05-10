@@ -7,10 +7,10 @@ import {
   ParsedCommandLine,
   Transpiler,
 } from "@memoraike/typescript-to-lua";
-import { logger } from "./logger";
-import { PZPW_ERRORS } from "./constants";
-import { getOutDir } from "./compilers/utils";
-import { diagnosticLog, getSourceDir, normalizeFileName } from "./utils";
+import { logger } from "./logger.js";
+import { PZPW_ERRORS } from "./constants.js";
+import { getOutDir } from "./compilers/utils.js";
+import { diagnosticLog, getSourceDir, normalizeFileName } from "./utils.js";
 
 export type TranspileResult = {
   emitResult: EmitResult;

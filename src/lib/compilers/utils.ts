@@ -2,9 +2,9 @@ import { PZPWConfig } from "pzpw-config-schema";
 import { writeFile } from "fs/promises";
 import { dirname, isAbsolute, join, normalize, resolve, sep } from "path";
 import { existsSync, readFileSync } from "fs";
-import { ModuleScope, PZPW_ASSETS_DIR, PZPW_ERRORS } from "../constants";
-import { logger } from "../logger";
-import { APP_PATH, getTsConfig } from "../utils";
+import { ModuleScope, PZPW_ASSETS_DIR, PZPW_ERRORS } from "../constants.js";
+import { logger } from "../logger.js";
+import { APP_PATH, getTsConfig } from "../utils.js";
 
 const REIMPORT_TEMPLATE = readFileSync(
   join(APP_PATH, "node_modules/@asledgehammer/tstl-pipewrench/lua/reimport_template.lua"),

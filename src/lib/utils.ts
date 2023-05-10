@@ -5,8 +5,8 @@ import { copyFile, mkdir, readdir, readFile, stat, writeFile } from "fs/promises
 import ts from "typescript";
 import { ParsedCommandLine } from "@memoraike/typescript-to-lua";
 import { readdirSync } from "fs";
-import { ModuleScope, PZPW_ERRORS } from "./constants";
-import { logger } from "./logger";
+import { ModuleScope, PZPW_ERRORS } from "./constants.js";
+import { logger } from "./logger.js";
 
 /**
  * Root directory of the running process
