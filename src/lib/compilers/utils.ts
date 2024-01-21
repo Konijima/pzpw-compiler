@@ -154,6 +154,7 @@ function getOutDir(): string {
  * @param {string} module
  */
 function getModuleName(module: string): string {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, s, n] = module.split(sep);
   return s.charAt(0) === "@" ? `${s}/${n}` : `${s}`;
 }
